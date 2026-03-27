@@ -1,72 +1,46 @@
-import React, { useState, useEffect, useCallback } from 'react'
-import { Plus, Trash2, Download, FileSpreadsheet, Building2, Edit2, X, Package, LayoutTemplate, ChevronRight, AlertCircle, RefreshCw, Wifi, WifiOff } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Plus, Trash2, Download, FileSpreadsheet, Building2, Edit2, X, Package, LayoutTemplate, ChevronRight, AlertCircle, RefreshCw, Wifi, WifiOff, History, FolderOpen, ChevronDown, Clock } from 'lucide-react'
 import { supabase } from './supabase'
 
-// ─── 常數 ─────────────────────────────────────────────────────────
 const SPACE_TYPES = ['總裁室','高管室','主管室','職員區','會議室','儲物室','培訓室','公共區','櫃台','茶水間']
 const EMPTY_PRODUCT = { sku:'',name:'',spaces:[],spec:'',material:'',price:0,cost:0,vendor:'',lead_time:'',volume:'',weight:'',assembly_fee:'',logistics_fee:'',labor_hours:'' }
 
-// ─── 同步狀態指示器 ───────────────────────────────────────────────
 function SyncBadge({ status }) {
-  if (status === 'syncing') return (
-    <span className="flex items-center gap-1 text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-full">
-      <RefreshCw className="w-3 h-3 animate-spin"/> 同步中
-    </span>
-  )
-  if (status === 'error') return (
-    <span className="flex items-center gap-1 text-xs text-red-500 bg-red-50 px-2 py-1 rounded-full">
-      <WifiOff className="w-3 h-3"/> 連線失敗
-    </span>
-  )
-  return (
-    <span className="flex items-center gap-1 text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">
-      <Wifi className="w-3 h-3"/> 已同步
-    </span>
-  )
+  if (status==='syncing') return <span className="flex items-center gap-1 text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-full"><RefreshCw className="w-3 h-3 animate-spin"/>同步中</span>
+  if (status==='error') return <span className="flex items-center gap-1 text-xs text-red-500 bg-red-50 px-2 py-1 rounded-full"><WifiOff className="w-3 h-3"/>連線失敗</span>
+  return <span className="flex items-center gap-1 text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full"><Wifi className="w-3 h-3"/>已同步</span>
 }
 
-// ─── Field 元件 ───────────────────────────────────────────────────
 function Field({ label, value, onChange, type='text', disabled=false, mono=false }) {
   return (
     <div>
       <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wide">{label}</label>
       <input type={type} value={value??''} onChange={e=>onChange(e.target.value)} disabled={disabled}
-        className={`w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-400 outline-none transition disabled:bg-slate-100 disabled:text-slate-400 bg-white ${mono?'font-mono':''}`} />
+        className={`w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-400 outline-none transition disabled:bg-slate-100 disabled:text-slate-400 bg-white ${mono?'font-mono':''}`}/>
     </div>
   )
 }
 
-// ─── 產品 Modal ───────────────────────────────────────────────────
 function ProductModal({ product, onSave, onClose }) {
   const [form, setForm] = useState(product ? {...product} : {...EMPTY_PRODUCT})
   const [saving, setSaving] = useState(false)
   const set = (k,v) => setForm(f=>({...f,[k]:v}))
-  const toggleSpace = s => set('spaces', form.spaces.includes(s) ? form.spaces.filter(x=>x!==s) : [...form.spaces, s])
-  const margin = form.price > 0 ? ((form.price-form.cost)/form.price*100).toFixed(1) : 0
-
+  const toggleSpace = s => set('spaces', form.spaces.includes(s)?form.spaces.filter(x=>x!==s):[...form.spaces,s])
+  const margin = form.price>0?((form.price-form.cost)/form.price*100).toFixed(1):0
   const handleSave = async () => {
-    if (!form.sku || !form.name) { alert('SKU 與產品名稱為必填'); return }
-    setSaving(true)
-    await onSave(form)
-    setSaving(false)
+    if (!form.sku||!form.name){alert('SKU 與產品名稱為必填');return}
+    setSaving(true); await onSave(form); setSaving(false)
   }
-
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col">
         <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
-          <h3 className="font-bold text-slate-800">{product ? `編輯 — ${product.sku}` : '新增產品'}</h3>
+          <h3 className="font-bold text-slate-800">{product?`編輯 — ${product.sku}`:'新增產品'}</h3>
           <button onClick={onClose}><X className="w-5 h-5 text-slate-400"/></button>
         </div>
         <div className="overflow-y-auto flex-1 p-6 space-y-5">
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="產品編號 SKU" value={form.sku} onChange={v=>set('sku',v)} disabled={!!product} mono/>
-            <Field label="產品名稱" value={form.name} onChange={v=>set('name',v)}/>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="規格/尺寸" value={form.spec} onChange={v=>set('spec',v)}/>
-            <Field label="材質" value={form.material} onChange={v=>set('material',v)}/>
-          </div>
+          <div className="grid grid-cols-2 gap-4"><Field label="SKU" value={form.sku} onChange={v=>set('sku',v)} disabled={!!product} mono/><Field label="產品名稱" value={form.name} onChange={v=>set('name',v)}/></div>
+          <div className="grid grid-cols-2 gap-4"><Field label="規格/尺寸" value={form.spec} onChange={v=>set('spec',v)}/><Field label="材質" value={form.material} onChange={v=>set('material',v)}/></div>
           <div className="grid grid-cols-3 gap-4">
             <Field label="售價 NT$" type="number" value={form.price} onChange={v=>set('price',Number(v))} mono/>
             <Field label="成本 NT$" type="number" value={form.cost} onChange={v=>set('cost',Number(v))} mono/>
@@ -90,20 +64,15 @@ function ProductModal({ product, onSave, onClose }) {
           <div>
             <label className="block text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wide">適用空間</label>
             <div className="flex flex-wrap gap-2">
-              {SPACE_TYPES.map(s=>(
-                <button key={s} type="button" onClick={()=>toggleSpace(s)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${form.spaces.includes(s)?'bg-indigo-600 text-white border-indigo-600':'bg-white text-slate-600 border-slate-300 hover:border-indigo-300'}`}>
-                  {s}
-                </button>
-              ))}
+              {SPACE_TYPES.map(s=><button key={s} type="button" onClick={()=>toggleSpace(s)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${form.spaces.includes(s)?'bg-indigo-600 text-white border-indigo-600':'bg-white text-slate-600 border-slate-300 hover:border-indigo-300'}`}>{s}</button>)}
             </div>
           </div>
         </div>
         <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3">
           <button onClick={onClose} className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50">取消</button>
-          <button onClick={handleSave} disabled={saving}
-            className="px-5 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition disabled:opacity-60">
-            {saving ? '儲存中…' : (product ? '儲存修改' : '新增產品')}
+          <button onClick={handleSave} disabled={saving} className="px-5 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 disabled:opacity-60">
+            {saving?'儲存中…':(product?'儲存修改':'新增產品')}
           </button>
         </div>
       </div>
@@ -111,65 +80,44 @@ function ProductModal({ product, onSave, onClose }) {
   )
 }
 
-// ─── 產品資料庫 Tab ───────────────────────────────────────────────
 function ProductsTab({ products, onSave, onDelete }) {
   const [modal, setModal] = useState(null)
   const [search, setSearch] = useState('')
   const filtered = products.filter(p=>!search||p.sku.toLowerCase().includes(search.toLowerCase())||p.name.includes(search)||p.vendor.includes(search))
-
   return (
     <div className="space-y-4">
-      {(modal==='add'||(modal&&modal.sku)) && (
-        <ProductModal product={modal==='add'?null:modal} onSave={async p=>{await onSave(p);setModal(null)}} onClose={()=>setModal(null)}/>
-      )}
+      {(modal==='add'||(modal&&modal.sku))&&<ProductModal product={modal==='add'?null:modal} onSave={async p=>{await onSave(p);setModal(null)}} onClose={()=>setModal(null)}/>}
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-3">
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="搜尋 SKU / 名稱 / 廠商…"
-            className="border border-slate-200 rounded-lg px-3 py-2 text-sm w-64 outline-none focus:ring-2 focus:ring-indigo-400 bg-white"/>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="搜尋 SKU / 名稱 / 廠商…" className="border border-slate-200 rounded-lg px-3 py-2 text-sm w-64 outline-none focus:ring-2 focus:ring-indigo-400 bg-white"/>
           <span className="text-sm text-slate-400">{filtered.length} 筆</span>
         </div>
-        <button onClick={()=>setModal('add')} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 shadow-sm">
-          <Plus className="w-4 h-4"/> 新增產品
-        </button>
+        <button onClick={()=>setModal('add')} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 shadow-sm"><Plus className="w-4 h-4"/>新增產品</button>
       </div>
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
         <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 uppercase tracking-wider">
-              <th className="px-4 py-3 text-left font-semibold w-24">SKU</th>
-              <th className="px-4 py-3 text-left font-semibold">產品名稱</th>
-              <th className="px-4 py-3 text-left font-semibold w-32">規格</th>
-              <th className="px-4 py-3 text-left font-semibold w-32">材質</th>
-              <th className="px-4 py-3 text-right font-semibold w-28">售價</th>
-              <th className="px-4 py-3 text-right font-semibold w-20">毛利率</th>
-              <th className="px-4 py-3 text-left font-semibold w-24">廠商</th>
-              <th className="px-4 py-3 text-left font-semibold">適用空間</th>
-              <th className="px-4 py-3 w-20"></th>
-            </tr>
-          </thead>
+          <thead><tr className="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 uppercase tracking-wider">
+            <th className="px-4 py-3 text-left font-semibold w-24">SKU</th><th className="px-4 py-3 text-left font-semibold">產品名稱</th>
+            <th className="px-4 py-3 text-left font-semibold w-32">規格</th><th className="px-4 py-3 text-right font-semibold w-28">售價</th>
+            <th className="px-4 py-3 text-right font-semibold w-20">毛利率</th><th className="px-4 py-3 text-left font-semibold w-24">廠商</th>
+            <th className="px-4 py-3 text-left font-semibold">適用空間</th><th className="px-4 py-3 w-20"></th>
+          </tr></thead>
           <tbody className="divide-y divide-slate-100">
             {filtered.map(p=>{
               const margin=p.price>0?((p.price-p.cost)/p.price*100).toFixed(0):0
-              return (
-                <tr key={p.sku} className="hover:bg-slate-50 transition group">
-                  <td className="px-4 py-3 font-mono text-xs font-bold text-slate-500">{p.sku}</td>
-                  <td className="px-4 py-3 font-semibold text-slate-800">{p.name}</td>
-                  <td className="px-4 py-3 text-slate-500 text-xs">{p.spec}</td>
-                  <td className="px-4 py-3 text-slate-500 text-xs">{p.material}</td>
-                  <td className="px-4 py-3 text-right font-mono text-slate-700">{Number(p.price).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-right">
-                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${Number(margin)>=30?'bg-emerald-50 text-emerald-700':'bg-amber-50 text-amber-700'}`}>{margin}%</span>
-                  </td>
-                  <td className="px-4 py-3 text-slate-500 text-xs">{p.vendor}</td>
-                  <td className="px-4 py-3"><div className="flex flex-wrap gap-1">{(p.spaces||[]).map(s=><span key={s} className="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">{s}</span>)}</div></td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition">
-                      <button onClick={()=>setModal(p)} className="p-1.5 hover:bg-indigo-50 rounded-lg text-slate-400 hover:text-indigo-600"><Edit2 className="w-3.5 h-3.5"/></button>
-                      <button onClick={()=>onDelete(p.sku)} className="p-1.5 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5"/></button>
-                    </div>
-                  </td>
-                </tr>
-              )
+              return <tr key={p.sku} className="hover:bg-slate-50 transition group">
+                <td className="px-4 py-3 font-mono text-xs font-bold text-slate-500">{p.sku}</td>
+                <td className="px-4 py-3 font-semibold text-slate-800">{p.name}</td>
+                <td className="px-4 py-3 text-slate-500 text-xs">{p.spec}</td>
+                <td className="px-4 py-3 text-right font-mono text-slate-700">{Number(p.price).toLocaleString()}</td>
+                <td className="px-4 py-3 text-right"><span className={`text-xs font-bold px-2 py-0.5 rounded-full ${Number(margin)>=30?'bg-emerald-50 text-emerald-700':'bg-amber-50 text-amber-700'}`}>{margin}%</span></td>
+                <td className="px-4 py-3 text-slate-500 text-xs">{p.vendor}</td>
+                <td className="px-4 py-3"><div className="flex flex-wrap gap-1">{(p.spaces||[]).map(s=><span key={s} className="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">{s}</span>)}</div></td>
+                <td className="px-4 py-3"><div className="flex gap-1 opacity-0 group-hover:opacity-100 transition">
+                  <button onClick={()=>setModal(p)} className="p-1.5 hover:bg-indigo-50 rounded-lg text-slate-400 hover:text-indigo-600"><Edit2 className="w-3.5 h-3.5"/></button>
+                  <button onClick={()=>onDelete(p.sku)} className="p-1.5 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5"/></button>
+                </div></td>
+              </tr>
             })}
           </tbody>
         </table>
@@ -179,63 +127,27 @@ function ProductsTab({ products, onSave, onDelete }) {
   )
 }
 
-// ─── 場景模板 Tab ─────────────────────────────────────────────────
 function ScenesTab({ scenes, products, onUpdate, onAdd, onDelete }) {
   const [editing, setEditing] = useState(null)
   const productMap = Object.fromEntries(products.map(p=>[p.sku,p]))
-
-  const addScene = async () => {
-    const newScene = { id:`SC_${Date.now()}`, name:'新場景', space_type:'職員區', items:[] }
-    await onAdd(newScene)
-    setEditing(newScene.id)
-  }
-
-  const updateField = async (scene, field, val) => {
-    await onUpdate({...scene, [field]:val})
-  }
-
-  const addItem = async (scene) => {
-    const sku = prompt('輸入產品 SKU:')
-    if (!sku) return
-    if (!productMap[sku]) { alert(`找不到 SKU: ${sku}`); return }
-    await onUpdate({...scene, items:[...scene.items,{sku,qty:1}]})
-  }
-
-  const updateItemQty = async (scene, idx, qty) => {
-    const items = scene.items.map((it,i)=>i===idx?{...it,qty:Math.max(0,qty)}:it)
-    await onUpdate({...scene, items})
-  }
-
-  const removeItem = async (scene, idx) => {
-    await onUpdate({...scene, items:scene.items.filter((_,i)=>i!==idx)})
-  }
-
+  const addScene = async () => { const n={id:`SC_${Date.now()}`,name:'新場景',space_type:'職員區',items:[]}; await onAdd(n); setEditing(n.id) }
+  const updateField = async (scene,field,val) => await onUpdate({...scene,[field]:val})
+  const addItem = async (scene) => { const sku=prompt('輸入產品 SKU:'); if(!sku)return; if(!productMap[sku]){alert(`找不到 SKU: ${sku}`);return}; await onUpdate({...scene,items:[...scene.items,{sku,qty:1}]}) }
+  const updateItemQty = async (scene,idx,qty) => await onUpdate({...scene,items:scene.items.map((it,i)=>i===idx?{...it,qty:Math.max(0,qty)}:it)})
+  const removeItem = async (scene,idx) => await onUpdate({...scene,items:scene.items.filter((_,i)=>i!==idx)})
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <button onClick={addScene} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 shadow-sm">
-          <Plus className="w-4 h-4"/> 新增場景模板
-        </button>
-      </div>
+      <div className="flex justify-end"><button onClick={addScene} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 shadow-sm"><Plus className="w-4 h-4"/>新增場景模板</button></div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {scenes.map(scene=>(
           <div key={scene.id} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              {editing===scene.id ? (
-                <div className="flex gap-2 flex-1 mr-3">
-                  <input value={scene.name} onChange={e=>updateField(scene,'name',e.target.value)}
-                    className="border border-slate-200 rounded-lg px-2 py-1 text-sm flex-1 focus:ring-2 focus:ring-indigo-400 outline-none"/>
-                  <select value={scene.space_type} onChange={e=>updateField(scene,'space_type',e.target.value)}
-                    className="border border-slate-200 rounded-lg px-2 py-1 text-sm focus:ring-2 focus:ring-indigo-400 outline-none">
-                    {SPACE_TYPES.map(t=><option key={t}>{t}</option>)}
-                  </select>
-                </div>
-              ) : (
-                <div className="flex-1">
-                  <div className="font-semibold text-slate-800 text-sm">{scene.name}</div>
-                  <span className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full mt-1 inline-block">{scene.space_type}</span>
-                </div>
-              )}
+              {editing===scene.id?<div className="flex gap-2 flex-1 mr-3">
+                <input value={scene.name} onChange={e=>updateField(scene,'name',e.target.value)} className="border border-slate-200 rounded-lg px-2 py-1 text-sm flex-1 focus:ring-2 focus:ring-indigo-400 outline-none"/>
+                <select value={scene.space_type} onChange={e=>updateField(scene,'space_type',e.target.value)} className="border border-slate-200 rounded-lg px-2 py-1 text-sm outline-none">
+                  {SPACE_TYPES.map(t=><option key={t}>{t}</option>)}
+                </select>
+              </div>:<div className="flex-1"><div className="font-semibold text-slate-800 text-sm">{scene.name}</div><span className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full mt-1 inline-block">{scene.space_type}</span></div>}
               <div className="flex gap-1">
                 <button onClick={()=>setEditing(editing===scene.id?null:scene.id)} className="p-1.5 hover:bg-indigo-50 rounded-lg text-slate-400 hover:text-indigo-600"><Edit2 className="w-3.5 h-3.5"/></button>
                 <button onClick={()=>onDelete(scene.id)} className="p-1.5 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5"/></button>
@@ -244,30 +156,17 @@ function ScenesTab({ scenes, products, onUpdate, onAdd, onDelete }) {
             <div className="p-4 space-y-2">
               {scene.items.map((item,idx)=>{
                 const p=productMap[item.sku]
-                return (
-                  <div key={idx} className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2 text-sm">
-                    <div>
-                      <span className="font-medium text-slate-700">{p?p.name:<span className="text-red-500">找不到 {item.sku}</span>}</span>
-                      <span className="text-xs text-slate-400 ml-2 font-mono">{item.sku}</span>
-                    </div>
-                    {editing===scene.id ? (
-                      <div className="flex items-center gap-1">
-                        <button onClick={()=>updateItemQty(scene,idx,item.qty-1)} className="w-6 h-6 border rounded text-xs text-slate-500 hover:bg-white">-</button>
-                        <span className="w-8 text-center font-mono text-sm font-bold">{item.qty}</span>
-                        <button onClick={()=>updateItemQty(scene,idx,item.qty+1)} className="w-6 h-6 border rounded text-xs text-slate-500 hover:bg-white">+</button>
-                        <button onClick={()=>removeItem(scene,idx)} className="ml-1 text-slate-400 hover:text-red-500"><X className="w-3.5 h-3.5"/></button>
-                      </div>
-                    ) : (
-                      <span className="text-xs font-bold font-mono bg-white border rounded px-2 py-0.5 text-slate-600">x{item.qty}</span>
-                    )}
-                  </div>
-                )
+                return <div key={idx} className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2 text-sm">
+                  <div><span className="font-medium text-slate-700">{p?p.name:<span className="text-red-500">找不到 {item.sku}</span>}</span><span className="text-xs text-slate-400 ml-2 font-mono">{item.sku}</span></div>
+                  {editing===scene.id?<div className="flex items-center gap-1">
+                    <button onClick={()=>updateItemQty(scene,idx,item.qty-1)} className="w-6 h-6 border rounded text-xs text-slate-500 hover:bg-white">-</button>
+                    <span className="w-8 text-center font-mono text-sm font-bold">{item.qty}</span>
+                    <button onClick={()=>updateItemQty(scene,idx,item.qty+1)} className="w-6 h-6 border rounded text-xs text-slate-500 hover:bg-white">+</button>
+                    <button onClick={()=>removeItem(scene,idx)} className="ml-1 text-slate-400 hover:text-red-500"><X className="w-3.5 h-3.5"/></button>
+                  </div>:<span className="text-xs font-bold font-mono bg-white border rounded px-2 py-0.5 text-slate-600">x{item.qty}</span>}
+                </div>
               })}
-              {editing===scene.id && (
-                <button onClick={()=>addItem(scene)} className="w-full mt-2 py-2 border-2 border-dashed border-indigo-200 rounded-lg text-sm text-indigo-500 hover:border-indigo-400 hover:bg-indigo-50 flex items-center justify-center gap-1">
-                  <Plus className="w-3.5 h-3.5"/> 加入產品
-                </button>
-              )}
+              {editing===scene.id&&<button onClick={()=>addItem(scene)} className="w-full mt-2 py-2 border-2 border-dashed border-indigo-200 rounded-lg text-sm text-indigo-500 hover:border-indigo-400 hover:bg-indigo-50 flex items-center justify-center gap-1"><Plus className="w-3.5 h-3.5"/>加入產品</button>}
             </div>
           </div>
         ))}
@@ -276,20 +175,73 @@ function ScenesTab({ scenes, products, onUpdate, onAdd, onDelete }) {
   )
 }
 
-// ─── 報價 Tab ─────────────────────────────────────────────────────
+function HistoryTab({ history, onDelete }) {
+  const [expanded, setExpanded] = useState(null)
+  return (
+    <div className="space-y-3">
+      {history.length===0&&<div className="py-20 text-center text-slate-300"><History className="w-10 h-10 mx-auto mb-2 opacity-30"/><p className="text-sm">尚無匯出記錄</p><p className="text-xs mt-1">每次按「客戶版」或「內部版」匯出時自動存入</p></div>}
+      {history.map(h=>{
+        const date=new Date(h.exported_at).toLocaleString('zh-TW',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})
+        const items=Array.isArray(h.items)?h.items:[]
+        return (
+          <div key={h.id} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 flex justify-between items-center cursor-pointer hover:bg-slate-50" onClick={()=>setExpanded(expanded===h.id?null:h.id)}>
+              <div className="flex items-center gap-4">
+                <div className={`px-2.5 py-1 rounded-full text-xs font-bold ${h.type==='client'?'bg-emerald-50 text-emerald-700':'bg-indigo-50 text-indigo-700'}`}>{h.type==='client'?'客戶版':'內部版'}</div>
+                <div>
+                  <div className="font-semibold text-slate-800 text-sm">{h.client||'（未填客戶）'} — {h.project_name||'未命名專案'}</div>
+                  <div className="text-xs text-slate-400 flex items-center gap-1 mt-0.5"><Clock className="w-3 h-3"/>{date} · {items.length} 項</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <div className="text-sm font-bold font-mono text-slate-700">NT$ {Number(h.total_sales).toLocaleString()}</div>
+                  {h.type==='internal'&&<div className="text-xs text-emerald-600 font-mono">毛利 NT$ {Number(h.total_sales-h.total_cost).toLocaleString()}</div>}
+                </div>
+                <button onClick={e=>{e.stopPropagation();onDelete(h.id)}} className="p-1.5 hover:bg-red-50 rounded-lg text-slate-300 hover:text-red-400"><Trash2 className="w-3.5 h-3.5"/></button>
+                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${expanded===h.id?'rotate-180':''}`}/>
+              </div>
+            </div>
+            {expanded===h.id&&(
+              <div className="border-t border-slate-100 overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead><tr className="bg-slate-50 text-slate-400 uppercase tracking-wide">
+                    <th className="px-4 py-2 text-left">樓層/空間</th><th className="px-4 py-2 text-left">產品</th>
+                    <th className="px-4 py-2 text-left">規格</th><th className="px-4 py-2 text-right">單價</th>
+                    <th className="px-4 py-2 text-center">數量</th><th className="px-4 py-2 text-right">小計</th>
+                  </tr></thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {items.map((item,i)=><tr key={i} className="hover:bg-slate-50">
+                      <td className="px-4 py-2"><div className="text-slate-400 font-mono">{item.floor}</div><div className="font-bold text-indigo-700">{item.space}</div></td>
+                      <td className="px-4 py-2 font-medium text-slate-700">{item.name} <span className="text-slate-400 font-mono">{item.sku}</span></td>
+                      <td className="px-4 py-2 text-slate-500">{item.spec}</td>
+                      <td className="px-4 py-2 text-right font-mono">{Number(item.price).toLocaleString()}</td>
+                      <td className="px-4 py-2 text-center font-mono font-bold">{item.qty}</td>
+                      <td className="px-4 py-2 text-right font-mono font-bold">{(item.price*item.qty).toLocaleString()}</td>
+                    </tr>)}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 function QuoteTab({ products, scenes, quoteItems, onAddItems, onUpdateItem, onRemoveItem, totalSales, totalCost, totalProfit }) {
   const [batchText, setBatchText] = useState('')
   const [parsedSpaces, setParsedSpaces] = useState(null)
   const [assignments, setAssignments] = useState({})
-
   const productMap = Object.fromEntries(products.map(p=>[p.sku,p]))
   const sceneMap = Object.fromEntries(scenes.map(s=>[s.id,s]))
 
   const handleParse = () => {
-    if (!batchText.trim()) return
-    const lines = batchText.trim().split('\n').filter(l=>l.trim())
-    const spaces = lines.map((line,i)=>{
-      const parts = line.trim().split(/[\t,，]+/).filter(Boolean)
+    if(!batchText.trim())return
+    const lines=batchText.trim().split('\n').filter(l=>l.trim())
+    const spaces=lines.map((line,i)=>{
+      const parts=line.trim().split(/[\t,，]+/).filter(Boolean)
       let floor='',code='',spaceType=''
       if(parts.length>=3){floor=parts[0];code=parts[1];spaceType=parts.slice(2).join(' ')}
       else if(parts.length===2){code=parts[0];spaceType=parts[1]}
@@ -299,43 +251,26 @@ function QuoteTab({ products, scenes, quoteItems, onAddItems, onUpdateItem, onRe
     setParsedSpaces(spaces)
     const types=[...new Set(spaces.map(s=>s.spaceType))]
     const auto={}
-    types.forEach(t=>{
-      const match=scenes.find(sc=>sc.space_type===t)
-      auto[t]=match?match.id:''
-    })
+    types.forEach(t=>{const match=scenes.find(sc=>sc.space_type===t);auto[t]=match?match.id:''})
     setAssignments(auto)
   }
 
   const handleGenerate = async () => {
-    const newItems = []
+    const newItems=[]
     ;(parsedSpaces||[]).filter(sp=>sp.include).forEach(space=>{
-      const sceneId=assignments[space.spaceType]
-      if(!sceneId)return
-      const scene=sceneMap[sceneId]
-      if(!scene)return
+      const sceneId=assignments[space.spaceType];if(!sceneId)return
+      const scene=sceneMap[sceneId];if(!scene)return
       const spaceName=[space.code,space.spaceType].filter(Boolean).join(' ')
       scene.items.forEach((item,sortIdx)=>{
-        const p=productMap[item.sku]
-        if(!p)return
-        newItems.push({
-          id:crypto.randomUUID(),
-          project_id:'default',
-          floor:space.floor, space:spaceName,
-          sku:p.sku, name:p.name, spec:p.spec||'', material:p.material||'',
-          price:p.price||0, cost:p.cost||0, vendor:p.vendor||'',
-          lead_time:p.lead_time||'', volume:p.volume||'', weight:p.weight||'',
-          assembly_fee:p.assembly_fee||'', logistics_fee:p.logistics_fee||'', labor_hours:p.labor_hours||'',
-          qty:item.qty, remark:'', sort_order: quoteItems.length + newItems.length + sortIdx
-        })
+        const p=productMap[item.sku];if(!p)return
+        newItems.push({id:crypto.randomUUID(),floor:space.floor,space:spaceName,sku:p.sku,name:p.name,spec:p.spec||'',material:p.material||'',price:p.price||0,cost:p.cost||0,vendor:p.vendor||'',lead_time:p.lead_time||'',volume:p.volume||'',weight:p.weight||'',assembly_fee:p.assembly_fee||'',logistics_fee:p.logistics_fee||'',labor_hours:p.labor_hours||'',qty:item.qty,remark:'',sort_order:quoteItems.length+newItems.length+sortIdx})
       })
     })
     await onAddItems(newItems)
-    setBatchText('')
-    setParsedSpaces(null)
-    setAssignments({})
+    setBatchText('');setParsedSpaces(null);setAssignments({})
   }
 
-  const uniqueTypes = parsedSpaces ? [...new Set(parsedSpaces.map(s=>s.spaceType))] : []
+  const uniqueTypes=parsedSpaces?[...new Set(parsedSpaces.map(s=>s.spaceType))]:[]
 
   return (
     <div className="grid grid-cols-12 gap-6">
@@ -347,19 +282,13 @@ function QuoteTab({ products, scenes, quoteItems, onAddItems, onUpdateItem, onRe
           </div>
           <div className="p-5 space-y-3">
             <p className="text-xs text-slate-400">每行一個空間：<code className="bg-slate-100 px-1 rounded">樓層 編號 類型</code></p>
-            <div className="bg-slate-50 rounded-lg p-3 text-xs text-slate-500 font-mono leading-relaxed border border-slate-100">
-              17F　201　主管室<br/>17F　202　主管室<br/>18F　301　會議室
-            </div>
-            <textarea value={batchText} onChange={e=>setBatchText(e.target.value)} placeholder="在此貼上空間清單…"
-              className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-mono h-36 resize-none focus:ring-2 focus:ring-indigo-400 outline-none"/>
-            <button onClick={handleParse} disabled={!batchText.trim()}
-              className="w-full py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 disabled:opacity-40 flex items-center justify-center gap-2">
-              <ChevronRight className="w-4 h-4"/> 解析空間清單
-            </button>
+            <div className="bg-slate-50 rounded-lg p-3 text-xs text-slate-500 font-mono leading-relaxed border border-slate-100">17F　201　主管室<br/>17F　202　主管室<br/>18F　301　會議室</div>
+            <textarea value={batchText} onChange={e=>setBatchText(e.target.value)} placeholder="在此貼上空間清單…" className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-mono h-36 resize-none focus:ring-2 focus:ring-indigo-400 outline-none"/>
+            <button onClick={handleParse} disabled={!batchText.trim()} className="w-full py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 disabled:opacity-40 flex items-center justify-center gap-2"><ChevronRight className="w-4 h-4"/>解析空間清單</button>
           </div>
         </div>
 
-        {parsedSpaces && (
+        {parsedSpaces&&(
           <div className="bg-white rounded-xl border border-amber-300 ring-2 ring-amber-100 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-amber-100 flex items-center gap-2">
               <span className="w-6 h-6 rounded-full bg-amber-500 text-white text-xs font-bold flex items-center justify-center">2</span>
@@ -367,38 +296,29 @@ function QuoteTab({ products, scenes, quoteItems, onAddItems, onUpdateItem, onRe
             </div>
             <div className="p-5 space-y-4">
               <div className="max-h-32 overflow-y-auto space-y-1">
-                {parsedSpaces.map(sp=>(
-                  <label key={sp.id} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5">
-                    <input type="checkbox" checked={sp.include} onChange={e=>setParsedSpaces(prev=>prev.map(s=>s.id===sp.id?{...s,include:e.target.checked}:s))} className="accent-indigo-600"/>
-                    <span className={sp.include?'text-slate-700':'text-slate-400 line-through'}>
-                      <span className="font-mono text-slate-400">{sp.floor}</span> {sp.code} <strong>{sp.spaceType}</strong>
-                    </span>
-                  </label>
-                ))}
+                {parsedSpaces.map(sp=><label key={sp.id} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5">
+                  <input type="checkbox" checked={sp.include} onChange={e=>setParsedSpaces(prev=>prev.map(s=>s.id===sp.id?{...s,include:e.target.checked}:s))} className="accent-indigo-600"/>
+                  <span className={sp.include?'text-slate-700':'text-slate-400 line-through'}><span className="font-mono text-slate-400">{sp.floor}</span> {sp.code} <strong>{sp.spaceType}</strong></span>
+                </label>)}
               </div>
               <div className="border-t border-slate-100 pt-4 space-y-3">
                 <p className="text-xs font-semibold text-slate-500 uppercase">每種空間套用模板</p>
-                {uniqueTypes.map(type=>(
-                  <div key={type} className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-slate-700 w-20 flex-shrink-0">{type}</span>
-                    <select value={assignments[type]||''} onChange={e=>setAssignments(prev=>({...prev,[type]:e.target.value}))}
-                      className="flex-1 border border-slate-200 rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-amber-400 outline-none bg-white">
-                      <option value="">— 不套用 —</option>
-                      {scenes.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
-                    </select>
-                    {!assignments[type]&&<AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0"/>}
-                  </div>
-                ))}
+                {uniqueTypes.map(type=><div key={type} className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-slate-700 w-20 flex-shrink-0">{type}</span>
+                  <select value={assignments[type]||''} onChange={e=>setAssignments(prev=>({...prev,[type]:e.target.value}))} className="flex-1 border border-slate-200 rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-amber-400 outline-none bg-white">
+                    <option value="">— 不套用 —</option>
+                    {scenes.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                  {!assignments[type]&&<AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0"/>}
+                </div>)}
               </div>
-              <button onClick={handleGenerate} className="w-full py-2.5 bg-amber-500 text-white rounded-lg text-sm font-bold hover:bg-amber-600 flex items-center justify-center gap-2">
-                確認加入報價清單 →
-              </button>
+              <button onClick={handleGenerate} className="w-full py-2.5 bg-amber-500 text-white rounded-lg text-sm font-bold hover:bg-amber-600 flex items-center justify-center gap-2">確認加入報價清單 →</button>
               <button onClick={()=>{setParsedSpaces(null);setAssignments({})}} className="w-full py-1.5 text-xs text-slate-400 hover:text-slate-600">取消</button>
             </div>
           </div>
         )}
 
-        {quoteItems.length > 0 && (
+        {quoteItems.length>0&&(
           <div className="bg-slate-800 text-white rounded-xl p-5 shadow-md">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">利潤試算（內部）</h3>
             <div className="space-y-3">
@@ -406,12 +326,7 @@ function QuoteTab({ products, scenes, quoteItems, onAddItems, onUpdateItem, onRe
               <div className="flex justify-between text-sm"><span className="text-slate-400">預估成本</span><span className="font-mono text-slate-400">− NT$ {totalCost.toLocaleString()}</span></div>
               <div className="h-px bg-slate-600"/>
               <div className="flex justify-between"><span className="font-medium">預估毛利</span><span className="font-bold text-xl font-mono text-emerald-400">NT$ {totalProfit.toLocaleString()}</span></div>
-              <div className="flex justify-between text-xs">
-                <span className="text-slate-400">毛利率</span>
-                <span className={`font-bold ${totalSales>0&&totalProfit/totalSales>0.3?'text-emerald-400':'text-amber-400'}`}>
-                  {totalSales>0?((totalProfit/totalSales)*100).toFixed(1):0}%
-                </span>
-              </div>
+              <div className="flex justify-between text-xs"><span className="text-slate-400">毛利率</span><span className={`font-bold ${totalSales>0&&totalProfit/totalSales>0.3?'text-emerald-400':'text-amber-400'}`}>{totalSales>0?((totalProfit/totalSales)*100).toFixed(1):0}%</span></div>
             </div>
           </div>
         )}
@@ -420,307 +335,192 @@ function QuoteTab({ products, scenes, quoteItems, onAddItems, onUpdateItem, onRe
       <div className="col-span-8">
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-            <h3 className="font-semibold text-slate-700 flex items-center gap-2">
-              <FileSpreadsheet className="w-4 h-4 text-slate-400"/>
-              報價清單
-              <span className="bg-indigo-100 text-indigo-700 text-xs px-2 py-0.5 rounded-full font-bold ml-1">{quoteItems.length} 項</span>
-            </h3>
+            <h3 className="font-semibold text-slate-700 flex items-center gap-2"><FileSpreadsheet className="w-4 h-4 text-slate-400"/>報價清單<span className="bg-indigo-100 text-indigo-700 text-xs px-2 py-0.5 rounded-full font-bold ml-1">{quoteItems.length} 項</span></h3>
             <p className="text-xs text-slate-400">所有欄位可直接點擊編輯</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead>
-                <tr className="text-xs text-slate-400 uppercase tracking-wide border-b border-slate-100">
-                  <th className="px-3 py-3 text-left font-semibold w-28">樓層/空間</th>
-                  <th className="px-3 py-3 text-left font-semibold">產品</th>
-                  <th className="px-3 py-3 text-left font-semibold w-32">規格</th>
-                  <th className="px-3 py-3 text-right font-semibold w-24">單價</th>
-                  <th className="px-3 py-3 text-center font-semibold w-24">數量</th>
-                  <th className="px-3 py-3 text-right font-semibold w-24">小計</th>
-                  <th className="px-3 py-3 text-left font-semibold w-32">備註</th>
-                  <th className="px-3 py-3 w-8"></th>
-                </tr>
-              </thead>
+              <thead><tr className="text-xs text-slate-400 uppercase tracking-wide border-b border-slate-100">
+                <th className="px-3 py-3 text-left w-28">樓層/空間</th><th className="px-3 py-3 text-left">產品</th>
+                <th className="px-3 py-3 text-left w-32">規格</th><th className="px-3 py-3 text-right w-24">單價</th>
+                <th className="px-3 py-3 text-center w-24">數量</th><th className="px-3 py-3 text-right w-24">小計</th>
+                <th className="px-3 py-3 text-left w-32">備註</th><th className="px-3 py-3 w-8"></th>
+              </tr></thead>
               <tbody className="divide-y divide-slate-50">
-                {quoteItems.length===0&&(
-                  <tr><td colSpan="8" className="py-16 text-center text-slate-300">
-                    <FileSpreadsheet className="w-10 h-10 mx-auto mb-2 opacity-30"/>
-                    <p className="text-sm">報價清單為空</p>
-                    <p className="text-xs mt-1">從左側批次貼入空間清單開始</p>
-                  </td></tr>
-                )}
+                {quoteItems.length===0&&<tr><td colSpan="8" className="py-16 text-center text-slate-300"><FileSpreadsheet className="w-10 h-10 mx-auto mb-2 opacity-30"/><p className="text-sm">報價清單為空</p><p className="text-xs mt-1">從左側批次貼入空間清單開始</p></td></tr>}
                 {quoteItems.map(item=>(
                   <tr key={item.id} className="hover:bg-slate-50/80 group transition">
-                    <td className="px-3 py-2">
-                      <div className="text-xs font-mono text-slate-400">{item.floor}</div>
-                      <div className="text-xs font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded mt-0.5 inline-block">{item.space}</div>
-                    </td>
-                    <td className="px-3 py-2">
-                      <div className="font-semibold text-slate-800 text-xs">{item.name} <span className="text-slate-400 font-mono font-normal">{item.sku}</span></div>
-                      <div className="text-[10px] text-slate-400 mt-0.5">{item.material}</div>
-                    </td>
-                    <td className="px-3 py-2">
-                      <input value={item.spec} onChange={e=>onUpdateItem(item.id,'spec',e.target.value)}
-                        className="w-full text-xs text-slate-600 bg-transparent border border-transparent hover:border-slate-200 focus:border-indigo-300 rounded px-2 py-1 outline-none"/>
-                    </td>
+                    <td className="px-3 py-2"><div className="text-xs font-mono text-slate-400">{item.floor}</div><div className="text-xs font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded mt-0.5 inline-block">{item.space}</div></td>
+                    <td className="px-3 py-2"><div className="font-semibold text-slate-800 text-xs">{item.name} <span className="text-slate-400 font-mono font-normal">{item.sku}</span></div><div className="text-[10px] text-slate-400 mt-0.5">{item.material}</div></td>
+                    <td className="px-3 py-2"><input value={item.spec} onChange={e=>onUpdateItem(item.id,'spec',e.target.value)} className="w-full text-xs text-slate-600 bg-transparent border border-transparent hover:border-slate-200 focus:border-indigo-300 rounded px-2 py-1 outline-none"/></td>
                     <td className="px-3 py-2 text-right font-mono text-slate-700 text-xs">{Number(item.price).toLocaleString()}</td>
-                    <td className="px-3 py-2">
-                      <div className="flex items-center justify-center border border-slate-200 rounded-lg overflow-hidden bg-white w-20 mx-auto">
-                        <button onClick={()=>onUpdateItem(item.id,'qty',Math.max(0,item.qty-1))} className="px-2 py-1 text-slate-400 hover:bg-slate-50 border-r border-slate-200 text-xs">−</button>
-                        <span className="px-2 text-xs font-bold font-mono text-indigo-700 w-8 text-center">{item.qty}</span>
-                        <button onClick={()=>onUpdateItem(item.id,'qty',item.qty+1)} className="px-2 py-1 text-slate-400 hover:bg-slate-50 border-l border-slate-200 text-xs">+</button>
-                      </div>
-                    </td>
+                    <td className="px-3 py-2"><div className="flex items-center justify-center border border-slate-200 rounded-lg overflow-hidden bg-white w-20 mx-auto">
+                      <button onClick={()=>onUpdateItem(item.id,'qty',Math.max(0,item.qty-1))} className="px-2 py-1 text-slate-400 hover:bg-slate-50 border-r border-slate-200 text-xs">−</button>
+                      <span className="px-2 text-xs font-bold font-mono text-indigo-700 w-8 text-center">{item.qty}</span>
+                      <button onClick={()=>onUpdateItem(item.id,'qty',item.qty+1)} className="px-2 py-1 text-slate-400 hover:bg-slate-50 border-l border-slate-200 text-xs">+</button>
+                    </div></td>
                     <td className="px-3 py-2 text-right font-mono font-bold text-slate-700 text-xs">{(item.price*item.qty).toLocaleString()}</td>
-                    <td className="px-3 py-2">
-                      <input value={item.remark} onChange={e=>onUpdateItem(item.id,'remark',e.target.value)}
-                        className="w-full text-xs text-slate-500 bg-transparent border border-transparent hover:border-slate-200 focus:border-indigo-300 rounded px-2 py-1 outline-none" placeholder="備註…"/>
-                    </td>
-                    <td className="px-3 py-2">
-                      <button onClick={()=>onRemoveItem(item.id)} className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 rounded text-slate-300 hover:text-red-400">
-                        <Trash2 className="w-3.5 h-3.5"/>
-                      </button>
-                    </td>
+                    <td className="px-3 py-2"><input value={item.remark} onChange={e=>onUpdateItem(item.id,'remark',e.target.value)} className="w-full text-xs text-slate-500 bg-transparent border border-transparent hover:border-slate-200 focus:border-indigo-300 rounded px-2 py-1 outline-none" placeholder="備註…"/></td>
+                    <td className="px-3 py-2"><button onClick={()=>onRemoveItem(item.id)} className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 rounded text-slate-300 hover:text-red-400"><Trash2 className="w-3.5 h-3.5"/></button></td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          {quoteItems.length>0&&(
-            <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex justify-end">
-              <div className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                總計：<span className="font-mono text-indigo-700 text-base">NT$ {totalSales.toLocaleString()}</span>
-              </div>
-            </div>
-          )}
+          {quoteItems.length>0&&<div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex justify-end"><div className="text-sm font-bold text-slate-700 flex items-center gap-2">總計：<span className="font-mono text-indigo-700 text-base">NT$ {totalSales.toLocaleString()}</span></div></div>}
         </div>
       </div>
     </div>
   )
 }
 
-// ─── 主程式 ───────────────────────────────────────────────────────
 export default function App() {
   const [tab, setTab] = useState('quote')
   const [products, setProducts] = useState([])
   const [scenes, setScenes] = useState([])
   const [quoteItems, setQuoteItems] = useState([])
-  const [projectInfo, setProjectInfo] = useState({ client:'', name:'' })
+  const [projects, setProjects] = useState([])
+  const [currentProjectId, setCurrentProjectId] = useState(null)
+  const [history, setHistory] = useState([])
   const [syncStatus, setSyncStatus] = useState('synced')
   const [loading, setLoading] = useState(true)
+  const [showProjectMenu, setShowProjectMenu] = useState(false)
 
-  // ── 初始載入 ────────────────────────────────────────────────────
-  useEffect(() => {
+  const currentProject = projects.find(p=>p.id===currentProjectId)||{id:'',client:'',name:''}
+
+  useEffect(()=>{
     loadAll()
+    const subs=[
+      supabase.channel('p').on('postgres_changes',{event:'*',schema:'public',table:'products'},()=>loadProducts()).subscribe(),
+      supabase.channel('s').on('postgres_changes',{event:'*',schema:'public',table:'scenes'},()=>loadScenes()).subscribe(),
+      supabase.channel('q').on('postgres_changes',{event:'*',schema:'public',table:'quote_items'},()=>loadQuoteItems(currentProjectId)).subscribe(),
+      supabase.channel('pr').on('postgres_changes',{event:'*',schema:'public',table:'projects'},()=>loadProjects()).subscribe(),
+    ]
+    return ()=>subs.forEach(s=>supabase.removeChannel(s))
+  },[])
 
-    // 即時訂閱：products
-    const prodSub = supabase.channel('products-changes')
-      .on('postgres_changes', { event:'*', schema:'public', table:'products' }, () => loadProducts())
-      .subscribe()
-
-    // 即時訂閱：scenes
-    const sceneSub = supabase.channel('scenes-changes')
-      .on('postgres_changes', { event:'*', schema:'public', table:'scenes' }, () => loadScenes())
-      .subscribe()
-
-    // 即時訂閱：quote_items
-    const quoteSub = supabase.channel('quote-changes')
-      .on('postgres_changes', { event:'*', schema:'public', table:'quote_items' }, () => loadQuoteItems())
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(prodSub)
-      supabase.removeChannel(sceneSub)
-      supabase.removeChannel(quoteSub)
-    }
-  }, [])
+  useEffect(()=>{ if(currentProjectId)loadQuoteItems(currentProjectId) },[currentProjectId])
 
   const loadAll = async () => {
     setLoading(true)
-    await Promise.all([loadProducts(), loadScenes(), loadQuoteItems(), loadProject()])
+    await Promise.all([loadProducts(),loadScenes(),loadProjects(),loadHistory()])
     setLoading(false)
   }
-
-  const loadProducts = async () => {
-    const { data } = await supabase.from('products').select('*').order('sku')
-    if (data) setProducts(data)
-  }
-
-  const loadScenes = async () => {
-    const { data } = await supabase.from('scenes').select('*')
-    if (data) setScenes(data)
-  }
-
-  const loadQuoteItems = async () => {
-    const { data } = await supabase.from('quote_items').select('*').eq('project_id','default').order('sort_order')
-    if (data) setQuoteItems(data)
-  }
-
-  const loadProject = async () => {
-    const { data } = await supabase.from('projects').select('*').eq('id','default').single()
-    if (data) setProjectInfo(data)
-  }
-
-  const withSync = async (fn) => {
-    setSyncStatus('syncing')
-    try { await fn(); setSyncStatus('synced') }
-    catch (e) { console.error(e); setSyncStatus('error') }
-  }
-
-  // ── 產品 CRUD ──────────────────────────────────────────────────
-  const handleSaveProduct = async (p) => {
-    await withSync(async () => {
-      await supabase.from('products').upsert(p, { onConflict:'sku' })
-      await loadProducts()
-    })
-  }
-
-  const handleDeleteProduct = async (sku) => {
-    if (!window.confirm(`確定刪除 ${sku}？`)) return
-    await withSync(async () => {
-      await supabase.from('products').delete().eq('sku', sku)
-      await loadProducts()
-    })
-  }
-
-  // ── 場景 CRUD ──────────────────────────────────────────────────
-  const handleAddScene = async (scene) => {
-    await withSync(async () => {
-      await supabase.from('scenes').insert(scene)
-      await loadScenes()
-    })
-  }
-
-  const handleUpdateScene = async (scene) => {
-    await withSync(async () => {
-      await supabase.from('scenes').upsert(scene, { onConflict:'id' })
-      await loadScenes()
-    })
-  }
-
-  const handleDeleteScene = async (id) => {
-    if (!window.confirm('確定刪除此場景模板？')) return
-    await withSync(async () => {
-      await supabase.from('scenes').delete().eq('id', id)
-      await loadScenes()
-    })
-  }
-
-  // ── 報價清單 CRUD ──────────────────────────────────────────────
-  const handleAddItems = async (items) => {
-    await withSync(async () => {
-      await supabase.from('quote_items').insert(items)
-      await loadQuoteItems()
-    })
-  }
-
-  const handleUpdateItem = async (id, field, value) => {
-    await withSync(async () => {
-      await supabase.from('quote_items').update({ [field]: value }).eq('id', id)
-      setQuoteItems(prev => prev.map(i => i.id===id ? {...i,[field]:value} : i))
-    })
-  }
-
-  const handleRemoveItem = async (id) => {
-    await withSync(async () => {
-      await supabase.from('quote_items').delete().eq('id', id)
-      setQuoteItems(prev => prev.filter(i => i.id!==id))
-    })
-  }
-
-  // ── 專案資訊 ──────────────────────────────────────────────────
-  const updateProjectInfo = async (field, val) => {
-    const next = {...projectInfo, [field]:val}
-    setProjectInfo(next)
-    await supabase.from('projects').upsert({id:'default',...next}, {onConflict:'id'})
-  }
-
-  const totalSales = quoteItems.reduce((s,i)=>s+Number(i.price)*Number(i.qty),0)
-  const totalCost  = quoteItems.reduce((s,i)=>s+Number(i.cost)*Number(i.qty),0)
-  const totalProfit = totalSales - totalCost
-
-  // ── 匯出 CSV ──────────────────────────────────────────────────
-  const exportCSV = (type) => {
-    const esc = v => '"'+String(v??'').replace(/"/g,'""')+'"'
-    let csv = '\uFEFF'
-    csv += `客戶,${esc(projectInfo.client)},專案,${esc(projectInfo.name)}\n\n`
-    if (type==='client') {
-      csv += ['樓層','空間','產品編號','產品名稱','規格/尺寸','材質','單價','數量','小計','備註'].join(',') + '\n'
-      quoteItems.filter(i=>i.qty>0).forEach(i=>{
-        csv += [esc(i.floor),esc(i.space),esc(i.sku),esc(i.name),esc(i.spec),esc(i.material),i.price,i.qty,i.price*i.qty,esc(i.remark)].join(',') + '\n'
-      })
-      csv += `\n,,,,,,,總計 NT$,${totalSales},\n`
-    } else {
-      csv += ['樓層','空間','產品編號','產品名稱','規格/尺寸','材質','單價','數量','銷售小計','備註','廠商','成本','成本小計','毛利','交期','方數','重量','組裝費','物流費','工時'].join(',') + '\n'
-      quoteItems.filter(i=>i.qty>0).forEach(i=>{
-        const ss=i.price*i.qty, cs=i.cost*i.qty
-        csv += [esc(i.floor),esc(i.space),esc(i.sku),esc(i.name),esc(i.spec),esc(i.material),i.price,i.qty,ss,esc(i.remark),esc(i.vendor),i.cost,cs,ss-cs,esc(i.lead_time),esc(i.volume),esc(i.weight),esc(i.assembly_fee),esc(i.logistics_fee),esc(i.labor_hours)].join(',') + '\n'
-      })
-      csv += `\n,,,,,,,總計 NT$,${totalSales},,,${totalCost},${totalProfit},,,,,\n`
+  const loadProducts = async () => { const {data}=await supabase.from('products').select('*').order('sku'); if(data)setProducts(data) }
+  const loadScenes = async () => { const {data}=await supabase.from('scenes').select('*'); if(data)setScenes(data) }
+  const loadHistory = async () => { const {data}=await supabase.from('export_history').select('*').order('exported_at',{ascending:false}).limit(100); if(data)setHistory(data) }
+  const loadProjects = async () => {
+    const {data}=await supabase.from('projects').select('*').order('created_at')
+    if(data&&data.length>0){ setProjects(data); if(!currentProjectId)setCurrentProjectId(data[0].id) }
+    else {
+      const np={id:crypto.randomUUID(),client:'',name:'新專案',created_at:new Date().toISOString()}
+      await supabase.from('projects').insert(np); setProjects([np]); setCurrentProjectId(np.id)
     }
-    const a = document.createElement('a')
-    a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}))
-    a.download = `${projectInfo.name||'報價單'}_${type==='client'?'客戶版':'內部版'}.csv`
-    document.body.appendChild(a); a.click(); document.body.removeChild(a)
+  }
+  const loadQuoteItems = async (pid) => { if(!pid)return; const {data}=await supabase.from('quote_items').select('*').eq('project_id',pid).order('sort_order'); if(data)setQuoteItems(data) }
+
+  const withSync = async (fn) => { setSyncStatus('syncing'); try{await fn();setSyncStatus('synced')}catch(e){console.error(e);setSyncStatus('error')} }
+
+  const createProject = async () => { const name=prompt('專案名稱：');if(!name)return; const np={id:crypto.randomUUID(),client:'',name,created_at:new Date().toISOString()}; await withSync(async()=>{await supabase.from('projects').insert(np);await loadProjects();setCurrentProjectId(np.id)}) }
+  const deleteProject = async (id) => { if(projects.length<=1){alert('至少保留一個專案');return}; if(!window.confirm('確定刪除此專案及報價清單？'))return; await withSync(async()=>{await supabase.from('quote_items').delete().eq('project_id',id);await supabase.from('projects').delete().eq('id',id);const rem=projects.filter(p=>p.id!==id);await loadProjects();if(rem.length>0)setCurrentProjectId(rem[0].id)}) }
+  const updateProjectInfo = async (field,val) => { setProjects(prev=>prev.map(p=>p.id===currentProjectId?{...p,[field]:val}:p)); await supabase.from('projects').update({[field]:val}).eq('id',currentProjectId) }
+
+  const handleSaveProduct = async (p) => await withSync(async()=>{await supabase.from('products').upsert(p,{onConflict:'sku'});await loadProducts()})
+  const handleDeleteProduct = async (sku) => { if(!window.confirm(`確定刪除 ${sku}？`))return; await withSync(async()=>{await supabase.from('products').delete().eq('sku',sku);await loadProducts()}) }
+  const handleAddScene = async (s) => await withSync(async()=>{await supabase.from('scenes').insert(s);await loadScenes()})
+  const handleUpdateScene = async (s) => await withSync(async()=>{await supabase.from('scenes').upsert(s,{onConflict:'id'});await loadScenes()})
+  const handleDeleteScene = async (id) => { if(!window.confirm('確定刪除？'))return; await withSync(async()=>{await supabase.from('scenes').delete().eq('id',id);await loadScenes()}) }
+  const handleAddItems = async (items) => await withSync(async()=>{const wi=items.map(i=>({...i,project_id:currentProjectId}));await supabase.from('quote_items').insert(wi);await loadQuoteItems(currentProjectId)})
+  const handleUpdateItem = async (id,field,value) => await withSync(async()=>{await supabase.from('quote_items').update({[field]:value}).eq('id',id);setQuoteItems(prev=>prev.map(i=>i.id===id?{...i,[field]:value}:i))})
+  const handleRemoveItem = async (id) => await withSync(async()=>{await supabase.from('quote_items').delete().eq('id',id);setQuoteItems(prev=>prev.filter(i=>i.id!==id))})
+
+  const totalSales=quoteItems.reduce((s,i)=>s+Number(i.price)*Number(i.qty),0)
+  const totalCost=quoteItems.reduce((s,i)=>s+Number(i.cost)*Number(i.qty),0)
+  const totalProfit=totalSales-totalCost
+
+  const exportCSV = async (type) => {
+    const esc=v=>'"'+String(v??'').replace(/"/g,'""')+'"'
+    let csv='\uFEFF'
+    csv+=`客戶,${esc(currentProject.client)},專案,${esc(currentProject.name)}\n\n`
+    if(type==='client'){
+      csv+=['樓層','空間','產品編號','產品名稱','規格/尺寸','材質','單價','數量','小計','備註'].join(',') + '\n'
+      quoteItems.filter(i=>i.qty>0).forEach(i=>{csv+=[esc(i.floor),esc(i.space),esc(i.sku),esc(i.name),esc(i.spec),esc(i.material),i.price,i.qty,i.price*i.qty,esc(i.remark)].join(',') + '\n'})
+      csv+=`\n,,,,,,,總計 NT$,${totalSales},\n`
+    } else {
+      csv+=['樓層','空間','產品編號','產品名稱','規格/尺寸','材質','單價','數量','銷售小計','備註','廠商','成本','成本小計','毛利','交期','方數','重量','組裝費','物流費','工時'].join(',') + '\n'
+      quoteItems.filter(i=>i.qty>0).forEach(i=>{const ss=i.price*i.qty,cs=i.cost*i.qty;csv+=[esc(i.floor),esc(i.space),esc(i.sku),esc(i.name),esc(i.spec),esc(i.material),i.price,i.qty,ss,esc(i.remark),esc(i.vendor),i.cost,cs,ss-cs,esc(i.lead_time),esc(i.volume),esc(i.weight),esc(i.assembly_fee),esc(i.logistics_fee),esc(i.labor_hours)].join(',') + '\n'})
+      csv+=`\n,,,,,,,總計 NT$,${totalSales},,,${totalCost},${totalProfit},,,,,\n`
+    }
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));a.download=`${currentProject.name||'報價單'}_${type==='client'?'客戶版':'內部版'}.csv`;document.body.appendChild(a);a.click();document.body.removeChild(a)
+    await supabase.from('export_history').insert({id:crypto.randomUUID(),project_id:currentProjectId,client:currentProject.client,project_name:currentProject.name,type,exported_at:new Date().toISOString(),total_sales:totalSales,total_cost:totalCost,items:quoteItems.filter(i=>i.qty>0)})
+    await loadHistory()
   }
 
-  const TABS = [
+  const TABS=[
     {id:'quote',label:'報價工具',icon:<FileSpreadsheet className="w-4 h-4"/>},
     {id:'products',label:`產品資料庫 (${products.length})`,icon:<Package className="w-4 h-4"/>},
     {id:'scenes',label:'場景模板',icon:<LayoutTemplate className="w-4 h-4"/>},
+    {id:'history',label:`匯出歷史 (${history.length})`,icon:<History className="w-4 h-4"/>},
   ]
 
-  if (loading) return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-      <div className="text-center">
-        <RefreshCw className="w-8 h-8 animate-spin text-indigo-600 mx-auto mb-3"/>
-        <p className="text-slate-500 text-sm">連接資料庫中…</p>
-      </div>
-    </div>
-  )
+  if(loading) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><div className="text-center"><RefreshCw className="w-8 h-8 animate-spin text-indigo-600 mx-auto mb-3"/><p className="text-slate-500 text-sm">連接資料庫中…</p></div></div>
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-800">
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-sm">
+      {showProjectMenu&&<div className="fixed inset-0 z-20" onClick={()=>setShowProjectMenu(false)}/>}
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
         <div className="max-w-screen-xl mx-auto px-6 py-3 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-              <Building2 className="w-4 h-4 text-white"/>
-            </div>
-            <div>
-              <div className="font-bold text-slate-800 text-sm leading-none">祥鼎辦公家具</div>
-              <div className="text-[10px] text-slate-400 mt-0.5">報價管理系統 v3.0 雲端版</div>
-            </div>
+            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center"><Building2 className="w-4 h-4 text-white"/></div>
+            <div><div className="font-bold text-slate-800 text-sm leading-none">祥鼎辦公家具</div><div className="text-[10px] text-slate-400 mt-0.5">報價管理系統 v4.0</div></div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <SyncBadge status={syncStatus}/>
-            <input placeholder="客戶名稱" value={projectInfo.client} onChange={e=>updateProjectInfo('client',e.target.value)}
-              className="border-b border-slate-200 focus:border-indigo-500 outline-none px-1 py-1 text-sm w-28 bg-transparent"/>
-            <input placeholder="專案名稱" value={projectInfo.name} onChange={e=>updateProjectInfo('name',e.target.value)}
-              className="border-b border-slate-200 focus:border-indigo-500 outline-none px-1 py-1 text-sm w-44 bg-transparent"/>
+            <div className="relative z-40">
+              <button onClick={()=>setShowProjectMenu(!showProjectMenu)} className="flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg text-sm hover:bg-slate-50 bg-white">
+                <FolderOpen className="w-4 h-4 text-indigo-500"/>
+                <span className="font-medium text-slate-700 max-w-xs truncate">{currentProject.name||'未命名專案'}</span>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400"/>
+              </button>
+              {showProjectMenu&&(
+                <div className="absolute top-full left-0 mt-1 w-72 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden">
+                  <div className="p-2 border-b border-slate-100"><p className="text-xs font-semibold text-slate-400 uppercase px-2 py-1">切換專案</p></div>
+                  <div className="max-h-56 overflow-y-auto">
+                    {projects.map(p=>(
+                      <div key={p.id} onClick={()=>{setCurrentProjectId(p.id);setShowProjectMenu(false)}}
+                        className={`flex items-center justify-between px-3 py-2.5 hover:bg-slate-50 cursor-pointer ${p.id===currentProjectId?'bg-indigo-50':''}`}>
+                        <div>
+                          <div className={`text-sm font-semibold ${p.id===currentProjectId?'text-indigo-700':'text-slate-700'}`}>{p.name||'未命名'}</div>
+                          <div className="text-xs text-slate-400">{p.client||'未填客戶'}</div>
+                        </div>
+                        {p.id!==currentProjectId&&<button onClick={e=>{e.stopPropagation();deleteProject(p.id)}} className="p-1 hover:bg-red-50 rounded text-slate-300 hover:text-red-400"><Trash2 className="w-3 h-3"/></button>}
+                        {p.id===currentProjectId&&<span className="text-xs bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full">目前</span>}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="p-2 border-t border-slate-100">
+                    <button onClick={()=>{createProject();setShowProjectMenu(false)}} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-indigo-600 hover:bg-indigo-50 rounded-lg font-medium"><Plus className="w-4 h-4"/>新增專案</button>
+                  </div>
+                </div>
+              )}
+            </div>
+            <input placeholder="客戶名稱" value={currentProject.client} onChange={e=>updateProjectInfo('client',e.target.value)} className="border-b border-slate-200 focus:border-indigo-500 outline-none px-1 py-1 text-sm w-28 bg-transparent"/>
+            <input placeholder="專案名稱" value={currentProject.name} onChange={e=>updateProjectInfo('name',e.target.value)} className="border-b border-slate-200 focus:border-indigo-500 outline-none px-1 py-1 text-sm w-44 bg-transparent"/>
             <div className="flex gap-2 ml-2">
-              <button onClick={()=>exportCSV('client')} className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 shadow-sm">
-                <FileSpreadsheet className="w-3.5 h-3.5"/> 客戶版
-              </button>
-              <button onClick={()=>exportCSV('internal')} className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-700 shadow-sm">
-                <Download className="w-3.5 h-3.5"/> 內部版
-              </button>
+              <button onClick={()=>exportCSV('client')} className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 shadow-sm"><FileSpreadsheet className="w-3.5 h-3.5"/>客戶版</button>
+              <button onClick={()=>exportCSV('internal')} className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-700 shadow-sm"><Download className="w-3.5 h-3.5"/>內部版</button>
             </div>
           </div>
         </div>
         <div className="max-w-screen-xl mx-auto px-6 flex gap-1 border-t border-slate-100">
-          {TABS.map(t=>(
-            <button key={t.id} onClick={()=>setTab(t.id)}
-              className={`inline-flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-colors ${tab===t.id?'border-indigo-600 text-indigo-600':'border-transparent text-slate-500 hover:text-slate-700'}`}>
-              {t.icon}{t.label}
-            </button>
-          ))}
+          {TABS.map(t=><button key={t.id} onClick={()=>setTab(t.id)} className={`inline-flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-colors ${tab===t.id?'border-indigo-600 text-indigo-600':'border-transparent text-slate-500 hover:text-slate-700'}`}>{t.icon}{t.label}</button>)}
         </div>
       </header>
       <main className="max-w-screen-xl mx-auto px-6 py-6">
         {tab==='quote'&&<QuoteTab products={products} scenes={scenes} quoteItems={quoteItems} onAddItems={handleAddItems} onUpdateItem={handleUpdateItem} onRemoveItem={handleRemoveItem} totalSales={totalSales} totalCost={totalCost} totalProfit={totalProfit}/>}
         {tab==='products'&&<ProductsTab products={products} onSave={handleSaveProduct} onDelete={handleDeleteProduct}/>}
         {tab==='scenes'&&<ScenesTab scenes={scenes} products={products} onUpdate={handleUpdateScene} onAdd={handleAddScene} onDelete={handleDeleteScene}/>}
+        {tab==='history'&&<HistoryTab history={history} onDelete={async id=>{await supabase.from('export_history').delete().eq('id',id);await loadHistory()}}/>}
       </main>
     </div>
   )
