@@ -1,0 +1,5 @@
+﻿sku,group_name,label,price_delta,is_default,sort_order
+MM-SOFA-XX,顏色,米灰,0,TRUE,1
+MM-SOFA-XX,顏色,墨綠,1500,FALSE,2
+MM-SOFA-XX,顏色,焦糖棕,1500,FALSE,3
+MM-SOFA-XX,配件,加購腳凳,4500,FALSE,4

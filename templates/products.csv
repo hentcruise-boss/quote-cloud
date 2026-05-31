@@ -1,0 +1,3 @@
+﻿sku,name,series,category,description,spec,material,base_price,image_url,qty_tiers,is_active,sort_order
+MM-SOFA-XX,範例：北歐三人布沙發,客廳系列,沙發,可拆洗布套；獨立筒坐墊；附抱枕 ×2,W2000×D900×H850,實木框＋高密度泡棉＋布面,32000,https://placehold.co/600x450?text=YOUR-IMG,"[{""min_qty"":5,""rate"":0.97},{""min_qty"":10,""rate"":0.94}]",TRUE,10
+MM-CHR-XX,範例：餐椅（單張）,餐廳系列,餐椅,人體工學椅背；可堆疊,W480×D520×H880,實木腳＋PU 坐墊,3200,,"[]",TRUE,20
