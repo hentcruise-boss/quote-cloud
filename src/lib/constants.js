@@ -1,0 +1,54 @@
+// 共用常數 (從原 App.jsx 抽出)
+
+export const SPACE_TYPES = ['總裁室','高管室','主管室','職員區','會議室','儲物室','培訓室','公共區','櫃台','茶水間']
+
+export const EMPTY_PRODUCT = {
+  sku:'', name:'', spaces:[], spec:'', material:'', price:0, cost:0, vendor:'',
+  lead_time:'', volume:'', weight:'', assembly_fee:'', logistics_fee:'', labor_hours:'',
+}
+
+// 案件階段 (看板欄位順序)。badge/dot 用完整 class 字串, 確保 Tailwind 不被 purge。
+export const STAGES = [
+  { key:'initiation', label:'立項',     badge:'bg-slate-50 text-slate-600 border-slate-200',     dot:'bg-slate-400'   },
+  { key:'presales',   label:'售前/報價', badge:'bg-indigo-50 text-indigo-700 border-indigo-200',   dot:'bg-indigo-500'  },
+  { key:'contract',   label:'簽約',     badge:'bg-violet-50 text-violet-700 border-violet-200',   dot:'bg-violet-500'  },
+  { key:'production', label:'生產',     badge:'bg-amber-50 text-amber-700 border-amber-200',      dot:'bg-amber-500'   },
+  { key:'delivery',   label:'交貨/安裝', badge:'bg-orange-50 text-orange-700 border-orange-200',   dot:'bg-orange-500'  },
+  { key:'inspection', label:'QC驗收',   badge:'bg-cyan-50 text-cyan-700 border-cyan-200',         dot:'bg-cyan-500'    },
+  { key:'aftersales', label:'售後',     badge:'bg-teal-50 text-teal-700 border-teal-200',         dot:'bg-teal-500'    },
+  { key:'closed',     label:'結案',     badge:'bg-emerald-50 text-emerald-700 border-emerald-200', dot:'bg-emerald-500' },
+  { key:'lost',       label:'流失',     badge:'bg-rose-50 text-rose-700 border-rose-200',         dot:'bg-rose-400'    },
+]
+export const STAGE_MAP = Object.fromEntries(STAGES.map(s => [s.key, s]))
+// 看板主要顯示的階段 (結案/流失收在最後)
+export const BOARD_STAGES = STAGES
+
+export const STATUSES = [
+  { key:'active',  label:'進行中' },
+  { key:'on_hold', label:'暫停'   },
+  { key:'closed',  label:'已結案' },
+  { key:'lost',    label:'已流失' },
+]
+export const STATUS_MAP = Object.fromEntries(STATUSES.map(s => [s.key, s]))
+
+export const ROLES = [
+  { key:'admin',    label:'管理員'        },
+  { key:'staff',    label:'內部員工'      },
+  { key:'customer', label:'客戶'          },
+  { key:'supplier', label:'供應商/工廠'   },
+  { key:'field',    label:'現場人員'      },
+]
+export const ROLE_MAP = Object.fromEntries(ROLES.map(r => [r.key, r]))
+export const INTERNAL_ROLES = ['admin','staff']
+
+// 時間軸事件類型 → 顯示文字
+export const EVENT_LABELS = {
+  created:        '建立案件',
+  stage_changed:  '階段變更',
+  status_changed: '狀態變更',
+  quote_sent:     '報價送出',
+  quote_accepted: '報價接受',
+  comment:        '留言',
+  attachment:     '上傳檔案',
+  note:           '備註',
+}
