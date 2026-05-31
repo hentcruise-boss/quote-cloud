@@ -74,9 +74,22 @@
 |---|---|
 | Excel 開 CSV 中文亂碼 | 我們已加 UTF-8 BOM，正常 Excel 直接打開即可。若仍亂碼，改用 Google Sheets 開→「另存為 CSV」 |
 | 匯入時 `duplicate key value: sku` | 該 SKU 已存在；要更新請到後台「產品」頁直接編輯，或先 DELETE 該列再匯入 |
-| 圖片開不出來 | URL 必須是公開可取（直接貼到瀏覽器能看到）；用 Imgur / Google Drive 公開連結 / 自家 CDN 都行 |
+| 圖片開不出來 | URL 必須是公開可取（直接貼到瀏覽器能看到）；最簡單：用後台「產品」直接上傳到 Supabase Storage（見下方） |
 | 已上架但前台看不到 | 檢查 `is_active` 是否為 `TRUE` |
 | 想暫時下架 | 後台「產品」頁點眼睛圖示，或直接改 `is_active = FALSE` |
+
+---
+
+## 圖片：用 Supabase Storage 自家託管（推薦）
+
+CSV 匯入時，`image_url` 留空沒關係；之後到後台「產品」→ 點該產品 → 在「圖片」區直接**選檔上傳**，
+系統會自動傳到 Supabase Storage 的 `product-images` bucket，並回填公開網址。
+
+啟用步驟（一次性）：
+1. 先到 SQL Editor 跑 `storage_setup.sql`（會建好 bucket 與權限：任何人可看、admin 才能上傳）
+2. 之後後台「產品」的圖片區就能直接上傳；管理員以外的人完全動不到 Storage
+
+> 也可手動填 image_url（Imgur / 自家 CDN / Google Drive 公開連結），那種方式比較不建議——連結容易失效。
 
 ---
 

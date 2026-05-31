@@ -1,9 +1,65 @@
-import React, { useEffect, useState } from 'react'
-import { Plus, X, Trash2, Eye, EyeOff } from 'lucide-react'
+import React, { useEffect, useRef, useState } from 'react'
+import { Plus, X, Trash2, Eye, EyeOff, Upload, Loader2, Image as ImageIcon } from 'lucide-react'
 import { supabase } from '../../supabase'
 import { nt } from '../../lib/format'
 
 const EMPTY = { sku: '', name: '', series: '', category: '', description: '', spec: '', material: '', base_price: 0, image_url: '', qty_tiers: [], is_active: true, sort_order: 0 }
+
+// 把檔案上傳到 product-images bucket，回傳 public URL
+async function uploadProductImage(file, sku) {
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
+  const safeSku = (sku || 'product').replace(/[^a-zA-Z0-9_-]/g, '_')
+  const path = `${safeSku}/${Date.now()}.${ext}`
+  const { error } = await supabase.storage.from('product-images').upload(path, file, { cacheControl: '3600', upsert: false })
+  if (error) throw error
+  const { data } = supabase.storage.from('product-images').getPublicUrl(path)
+  return data.publicUrl
+}
+
+function ImageUploader({ value, onChange, sku }) {
+  const inputRef = useRef(null)
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+
+  const handleFile = async (file) => {
+    if (!file) return
+    if (!file.type.startsWith('image/')) { setErr('請選擇圖片檔'); return }
+    if (file.size > 5 * 1024 * 1024) { setErr('檔案請小於 5MB'); return }
+    setErr(''); setBusy(true)
+    try { onChange(await uploadProductImage(file, sku)) }
+    catch (e) { setErr('上傳失敗：' + (e.message || '請確認 Storage bucket 已建立')) }
+    finally { setBusy(false) }
+  }
+
+  return (
+    <div>
+      <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">圖片</label>
+      <div className="flex gap-3">
+        <div className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+          {value
+            ? <img src={value} alt="" className="h-full w-full object-cover" />
+            : <div className="flex h-full items-center justify-center text-slate-300"><ImageIcon className="h-7 w-7" /></div>}
+        </div>
+        <div className="flex-1 space-y-2">
+          <div className="flex gap-2">
+            <button type="button" onClick={() => inputRef.current?.click()} disabled={busy}
+              className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-60">
+              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+              {busy ? '上傳中…' : '選擇圖片上傳'}
+            </button>
+            {value && <button type="button" onClick={() => onChange('')} className="rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-500">移除</button>}
+          </div>
+          <input ref={inputRef} type="file" accept="image/*" className="hidden"
+            onChange={e => handleFile(e.target.files?.[0])} />
+          <input value={value || ''} onChange={e => onChange(e.target.value)} className="inp text-xs"
+            placeholder="或直接貼網址：https://…" />
+          {err && <div className="text-xs text-rose-500">{err}</div>}
+          <div className="text-[10px] text-slate-400">JPG / PNG / WebP / GIF，5MB 內</div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function ProductModal({ product, onClose, onSaved }) {
   const isNew = !product
@@ -62,7 +118,7 @@ function ProductModal({ product, onClose, onSaved }) {
             <L label="排序"><input type="number" value={f.sort_order} onChange={e => set('sort_order', e.target.value)} className="inp font-mono" /></L>
             <L label="上架"><label className="flex h-[38px] items-center gap-2 text-sm"><input type="checkbox" checked={f.is_active} onChange={e => set('is_active', e.target.checked)} />{f.is_active ? '上架中' : '已下架'}</label></L>
           </div>
-          <L label="圖片網址"><input value={f.image_url || ''} onChange={e => set('image_url', e.target.value)} className="inp" placeholder="https://…" /></L>
+          <ImageUploader value={f.image_url} onChange={v => set('image_url', v)} sku={f.sku} />
 
           {/* 數量階梯 */}
           <div className="rounded-lg border border-slate-200 p-3">

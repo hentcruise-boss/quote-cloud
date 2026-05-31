@@ -42,6 +42,7 @@ Supabase 連線資訊在 `src/supabase.js`。
 2. `dealer_seed.sql` —— 定價等級、Demo 產品與選配
 3. `dealer_schema_p2.sql` —— 第二期資料表（庫存／對帳）、RLS、原子操作 RPC
 4. `dealer_seed_p2.sql` —— Demo 庫存（需先完成下方帳號綁定）
+5. `storage_setup.sql` —— 產品圖片 Storage bucket 與權限（後台「產品」要能上傳圖片才需要）
 
 ### 2. 建立登入帳號
 資料表的 `dealers` / `admins` 需綁定一個 Supabase Auth 使用者。
