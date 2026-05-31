@@ -138,3 +138,8 @@ export const addInvoice     = (v) => supabase.from('invoices').insert(v)
 export const updateInvoice  = (id, patch) => supabase.from('invoices').update(patch).eq('id', id)
 export const deleteInvoice  = (id) => supabase.from('invoices').delete().eq('id', id)
 export const listAllInvoices = () => supabase.from('invoices').select('amount,status')
+
+// ── 第九階段:庫存 (內部) ──────────────────────────────────
+export const listInventory      = () => supabase.from('inventory').select('*')
+export const addStockMovement   = (m) => supabase.from('stock_movements').insert(m)
+export const upsertReorderPoint = (sku, reorder_point) => supabase.from('inventory').upsert({ sku, reorder_point }, { onConflict: 'sku' })
