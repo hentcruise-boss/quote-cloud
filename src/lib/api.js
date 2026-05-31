@@ -63,6 +63,19 @@ export const listHistory  = (caseId) =>
 export const addHistory    = (h) => supabase.from('export_history').insert(h)
 export const deleteHistory = (id) => supabase.from('export_history').delete().eq('id', id)
 
+// ── 第二階段:對外可讀的視圖與參與者 ───────────────────────
+// 公開姓名 (只露 id, full_name) — 外部也能解析留言者名字
+export const listPublicProfiles = () => supabase.from('public_profiles').select('*')
+// 對外乾淨報價 (無成本/廠商/毛利;僅客戶參與者讀得到)
+export const listPublicQuoteItems = (caseId) =>
+  supabase.from('quote_items_public').select('*').eq('case_id', caseId).order('sort_order')
+
+// case_participants (內部管理)
+export const listParticipants  = (caseId) => supabase.from('case_participants').select('*').eq('case_id', caseId)
+export const addParticipant    = (p) => supabase.from('case_participants').insert(p)
+export const removeParticipant = (caseId, profileId) =>
+  supabase.from('case_participants').delete().eq('case_id', caseId).eq('profile_id', profileId)
+
 // 工具: 把 profiles 陣列轉成 id → 顯示名稱 map
 export const profileNameMap = (profiles) =>
   Object.fromEntries((profiles || []).map(p => [p.id, p.full_name || p.email || '未知']))

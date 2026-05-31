@@ -61,7 +61,7 @@ function NewCaseModal({ customers, onClose, onCreate }) {
 
 export default function CasesBoardPage() {
   const navigate = useNavigate()
-  const { profile } = useAuth()
+  const { profile, isInternal } = useAuth()
   const { run } = useSync()
   const [cases, setCases] = useState([])
   const [customers, setCustomers] = useState([])
@@ -70,7 +70,7 @@ export default function CasesBoardPage() {
   const [loading, setLoading] = useState(true)
 
   const load = async () => {
-    const [c, cu, pr] = await Promise.all([api.listCases(), api.listCustomers(), api.listProfiles()])
+    const [c, cu, pr] = await Promise.all([api.listCases(), api.listCustomers(), api.listPublicProfiles()])
     setCases(c.data || []); setCustomers(cu.data || []); setProfiles(pr.data || [])
     setLoading(false)
   }
@@ -114,12 +114,12 @@ export default function CasesBoardPage() {
       {showNew && <NewCaseModal customers={customers} onClose={() => setShowNew(false)} onCreate={createCase}/>}
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-bold text-slate-800 flex items-center gap-2"><LayoutGrid className="w-5 h-5 text-indigo-500"/>案件看板 <span className="text-sm font-normal text-slate-400">({cases.length})</span></h1>
-        <button onClick={() => setShowNew(true)} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 shadow-sm"><Plus className="w-4 h-4"/>新增案件</button>
+        {isInternal && <button onClick={() => setShowNew(true)} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 shadow-sm"><Plus className="w-4 h-4"/>新增案件</button>}
       </div>
       {loading
         ? <div className="py-20 text-center text-slate-400"><RefreshCw className="w-7 h-7 animate-spin mx-auto mb-2 text-indigo-500"/>載入中…</div>
-        : <KanbanBoard cases={cases} customersMap={customersMap} profilesMap={profilesMap} onOpen={cid => navigate(`/cases/${cid}`)} onMoveStage={moveStage}/>}
-      <p className="text-xs text-slate-400">提示:桌機可直接拖曳卡片到其他階段;手機請點卡片進入詳情後變更階段。</p>
+        : <KanbanBoard cases={cases} customersMap={customersMap} profilesMap={profilesMap} onOpen={cid => navigate(`/cases/${cid}`)} onMoveStage={isInternal ? moveStage : () => {}}/>}
+      {isInternal && <p className="text-xs text-slate-400">提示:桌機可直接拖曳卡片到其他階段;手機請點卡片進入詳情後變更階段。</p>}
     </div>
   )
 }

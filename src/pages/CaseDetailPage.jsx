@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
-import { ArrowLeft, FileSpreadsheet, Send, RefreshCw, Paperclip, MessageSquare, User } from 'lucide-react'
+import { useParams, Link } from 'react-router-dom'
+import { ArrowLeft, FileSpreadsheet, Send, RefreshCw, Paperclip, MessageSquare, User, Users, Plus, X } from 'lucide-react'
 import StageBadge from '../components/StageBadge'
 import Timeline from '../components/Timeline'
 import AttachmentList from '../components/AttachmentList'
@@ -9,25 +9,37 @@ import { useAuth } from '../contexts/AuthContext'
 import { useSync } from '../contexts/SyncContext'
 import * as api from '../lib/api'
 import { supabase } from '../supabase'
-import { STAGES, STAGE_MAP, STATUSES } from '../lib/constants'
+import { STAGES, STAGE_MAP, STATUSES, ROLE_MAP } from '../lib/constants'
 import { uploadCaseFile, removeCaseFile } from '../lib/storage'
-import { nt } from '../lib/format'
+import { nt, num } from '../lib/format'
+
+const RELATIONS = [
+  { key: 'customer', label: '客戶' },
+  { key: 'supplier', label: '供應商/工廠' },
+  { key: 'field',    label: '現場' },
+  { key: 'watcher',  label: '旁觀' },
+]
+const RELATION_MAP = Object.fromEntries(RELATIONS.map(r => [r.key, r.label]))
 
 export default function CaseDetailPage() {
   const { id } = useParams()
-  const navigate = useNavigate()
   const { profile, isInternal } = useAuth()
   const { run } = useSync()
 
   const [caseItem, setCaseItem] = useState(null)
   const [customers, setCustomers] = useState([])
-  const [profiles, setProfiles] = useState([])
+  const [profiles, setProfiles] = useState([])      // public_profiles (name map, 所有角色可讀)
+  const [pickerProfiles, setPickerProfiles] = useState([]) // 完整 profiles (僅內部, 用於指派參與者)
+  const [participants, setParticipants] = useState([])
   const [events, setEvents] = useState([])
   const [comments, setComments] = useState([])
   const [attachments, setAttachments] = useState([])
   const [quote, setQuote] = useState(null)
   const [quoteTotal, setQuoteTotal] = useState({ count: 0, sales: 0 })
+  const [publicItems, setPublicItems] = useState([]) // 客戶唯讀報價
   const [commentText, setCommentText] = useState('')
+  const [newPartId, setNewPartId] = useState('')
+  const [newPartRel, setNewPartRel] = useState('customer')
   const [loading, setLoading] = useState(true)
 
   const loadCase = async () => { const { data } = await api.getCase(id); setCaseItem(data || null) }
@@ -41,20 +53,25 @@ export default function CaseDetailPage() {
     setQuote(q)
     if (q) {
       const { data: items } = await api.listQuoteItems(q.id)
-      const sales = (items || []).reduce((s, i) => s + Number(i.price) * Number(i.qty), 0)
-      setQuoteTotal({ count: items?.length || 0, sales })
-    } else {
-      setQuoteTotal({ count: 0, sales: 0 })
-    }
+      setQuoteTotal({ count: items?.length || 0, sales: (items || []).reduce((s, i) => s + Number(i.price) * Number(i.qty), 0) })
+    } else { setQuoteTotal({ count: 0, sales: 0 }) }
   }
+  const loadParticipants = async () => { const { data } = await api.listParticipants(id); setParticipants(data || []) }
+  const loadPublicQuote = async () => { const { data } = await api.listPublicQuoteItems(id); setPublicItems(data || []) }
 
   useEffect(() => {
     setLoading(true)
-    Promise.all([
-      loadCase(), loadFeeds(), loadQuote(),
+    const tasks = [
+      loadCase(), loadFeeds(),
       api.listCustomers().then(r => setCustomers(r.data || [])),
-      api.listProfiles().then(r => setProfiles(r.data || [])),
-    ]).finally(() => setLoading(false))
+      api.listPublicProfiles().then(r => setProfiles(r.data || [])),
+    ]
+    if (isInternal) {
+      tasks.push(loadQuote(), loadParticipants(), api.listProfiles().then(r => setPickerProfiles(r.data || [])))
+    } else {
+      tasks.push(loadPublicQuote())
+    }
+    Promise.all(tasks).finally(() => setLoading(false))
 
     const ch = supabase.channel(`rt-case-${id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'case_events', filter: `case_id=eq.${id}` }, loadFeeds)
@@ -62,11 +79,12 @@ export default function CaseDetailPage() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'attachments', filter: `case_id=eq.${id}` }, loadFeeds)
       .subscribe()
     return () => supabase.removeChannel(ch)
-  }, [id])
+  }, [id, isInternal])
 
   const profilesMap = api.profileNameMap(profiles)
   const customerName = customers.find(c => c.id === caseItem?.customer_id)?.name
   const ownerName = profilesMap[caseItem?.owner_id]
+  const publicTotal = publicItems.reduce((s, i) => s + Number(i.price) * Number(i.qty), 0)
 
   const timelineItems = useMemo(() => {
     const evs = events.map(e => ({ ...e, kind: 'event' }))
@@ -94,17 +112,14 @@ export default function CaseDetailPage() {
     if (!commentText.trim()) return
     const body = commentText.trim()
     setCommentText('')
-    return run(async () => {
-      await api.addComment({ case_id: id, author_id: profile?.id, body })
-      await loadFeeds()
-    })
+    return run(async () => { await api.addComment({ case_id: id, author_id: profile?.id, body }); await loadFeeds() })
   }
 
+  // 上傳:附件→事件由 DB trigger 自動產生 (外部上傳免寫 case_events 權限)
   const handleUpload = (file) => run(async () => {
     const path = await uploadCaseFile(id, file)
     const kind = (file.type || '').startsWith('image/') ? 'photo' : 'document'
     await api.addAttachment({ case_id: id, uploaded_by: profile?.id, path, filename: file.name, mime_type: file.type, size_bytes: file.size, kind })
-    await api.addEvent({ case_id: id, actor_id: profile?.id, type: 'attachment', summary: `上傳檔案:${file.name}` })
     await loadFeeds()
   })
 
@@ -113,10 +128,23 @@ export default function CaseDetailPage() {
     await run(async () => { await removeCaseFile(a.path); await api.deleteAttachment(a.id); await loadFeeds() })
   }
 
+  const addParticipantFn = () => {
+    if (!newPartId) return
+    return run(async () => {
+      await api.addParticipant({ case_id: id, profile_id: newPartId, relation: newPartRel })
+      const who = profilesMap[newPartId] || (pickerProfiles.find(p => p.id === newPartId)?.email) || ''
+      await api.addEvent({ case_id: id, actor_id: profile?.id, type: 'participant_added', summary: `加入參與者:${who}（${RELATION_MAP[newPartRel]}）` })
+      setNewPartId('')
+      await Promise.all([loadParticipants(), loadFeeds()])
+    })
+  }
+  const removeParticipantFn = (pid) => run(async () => { await api.removeParticipant(id, pid); await loadParticipants() })
+
   if (loading) return <div className="py-20 text-center text-slate-400"><RefreshCw className="w-7 h-7 animate-spin mx-auto mb-2 text-indigo-500"/>載入中…</div>
-  if (!caseItem) return <div className="text-center text-slate-400 py-20">找不到此案件。</div>
+  if (!caseItem) return <div className="text-center text-slate-400 py-20">找不到此案件(或您沒有檢視權限)。</div>
 
   const selCls = 'border border-slate-200 rounded-lg px-2 py-1.5 text-xs outline-none focus:ring-2 focus:ring-indigo-400 bg-white'
+  const availableProfiles = pickerProfiles.filter(p => !participants.some(cp => cp.profile_id === p.id))
 
   return (
     <div className="space-y-5">
@@ -156,7 +184,7 @@ export default function CaseDetailPage() {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-5">
-        {/* 左:時間軸 + 留言 */}
+        {/* 左:留言 + 時間軸 */}
         <section className="lg:col-span-2 space-y-4">
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
             <h2 className="text-sm font-bold text-slate-700 mb-3">留言</h2>
@@ -173,31 +201,87 @@ export default function CaseDetailPage() {
           </div>
         </section>
 
-        {/* 右:報價摘要 + 附件 */}
+        {/* 右:報價 + 附件 + 參與者 */}
         <aside className="space-y-4">
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-            <h2 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2"><FileSpreadsheet className="w-4 h-4 text-slate-400"/>報價</h2>
-            {quote
-              ? <div className="space-y-1.5 text-sm">
-                  <div className="flex justify-between"><span className="text-slate-400">狀態</span><span className="font-medium">{quote.status}</span></div>
-                  <div className="flex justify-between"><span className="text-slate-400">項目</span><span className="font-mono">{quoteTotal.count}</span></div>
-                  <div className="flex justify-between"><span className="text-slate-400">總報價</span><span className="font-mono font-bold text-indigo-700">{nt(quoteTotal.sales)}</span></div>
-                </div>
-              : <p className="text-xs text-slate-400">尚未建立報價。</p>}
-            {isInternal && (
+          {/* 內部:報價摘要 + 工作區入口 */}
+          {isInternal && (
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+              <h2 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2"><FileSpreadsheet className="w-4 h-4 text-slate-400"/>報價</h2>
+              {quote
+                ? <div className="space-y-1.5 text-sm">
+                    <div className="flex justify-between"><span className="text-slate-400">狀態</span><span className="font-medium">{quote.status}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">項目</span><span className="font-mono">{quoteTotal.count}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">總報價</span><span className="font-mono font-bold text-indigo-700">{nt(quoteTotal.sales)}</span></div>
+                  </div>
+                : <p className="text-xs text-slate-400">尚未建立報價。</p>}
               <Link to={`/cases/${id}/quote`} className="mt-4 w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 border border-indigo-200 text-indigo-600 rounded-lg text-sm font-semibold hover:bg-indigo-50">
                 <FileSpreadsheet className="w-4 h-4"/>開啟報價工作區
               </Link>
-            )}
-          </div>
+            </div>
+          )}
 
+          {/* 客戶:唯讀報價 (無成本) */}
+          {!isInternal && publicItems.length > 0 && (
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="px-5 py-3 border-b border-slate-100 flex items-center gap-2"><FileSpreadsheet className="w-4 h-4 text-slate-400"/><h2 className="text-sm font-bold text-slate-700">報價內容</h2></div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead><tr className="bg-slate-50 text-slate-400 uppercase tracking-wide">
+                    <th className="px-3 py-2 text-left">空間</th><th className="px-3 py-2 text-left">產品</th>
+                    <th className="px-3 py-2 text-right">單價</th><th className="px-3 py-2 text-center">數量</th><th className="px-3 py-2 text-right">小計</th>
+                  </tr></thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {publicItems.map(i => (
+                      <tr key={i.id}>
+                        <td className="px-3 py-2"><div className="font-mono text-slate-400">{i.floor}</div><div className="font-semibold text-indigo-700">{i.space}</div></td>
+                        <td className="px-3 py-2 text-slate-700">{i.name} <span className="text-slate-400 font-mono">{i.sku}</span></td>
+                        <td className="px-3 py-2 text-right font-mono">{num(i.price)}</td>
+                        <td className="px-3 py-2 text-center font-mono">{i.qty}</td>
+                        <td className="px-3 py-2 text-right font-mono font-bold">{num(i.price * i.qty)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex justify-end text-sm font-bold text-slate-700">總計:<span className="font-mono text-indigo-700 ml-2">{nt(publicTotal)}</span></div>
+            </div>
+          )}
+
+          {/* 附件 (所有參與者可看/上傳) */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-3 gap-2">
               <h2 className="text-sm font-bold text-slate-700 flex items-center gap-2"><Paperclip className="w-4 h-4 text-slate-400"/>附件</h2>
               <FileUpload onUpload={handleUpload}/>
             </div>
-            <AttachmentList attachments={attachments} onDelete={isInternal ? handleDeleteAttachment : null}/>
+            <AttachmentList attachments={attachments} onDelete={handleDeleteAttachment}/>
           </div>
+
+          {/* 參與者 (內部管理) */}
+          {isInternal && (
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+              <h2 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2"><Users className="w-4 h-4 text-slate-400"/>參與者</h2>
+              <div className="space-y-2 mb-3">
+                {participants.length === 0 && <p className="text-xs text-slate-400">尚無外部參與者。加入後對方登入即可看到此案件。</p>}
+                {participants.map(cp => (
+                  <div key={cp.profile_id} className="flex items-center justify-between text-sm">
+                    <span className="text-slate-700">{profilesMap[cp.profile_id] || cp.profile_id}<span className="ml-2 text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full">{RELATION_MAP[cp.relation] || cp.relation}</span></span>
+                    <button onClick={() => removeParticipantFn(cp.profile_id)} className="p-1 text-slate-300 hover:text-red-500"><X className="w-3.5 h-3.5"/></button>
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-2 border-t border-slate-100 pt-3">
+                <select value={newPartId} onChange={e => setNewPartId(e.target.value)} className={`${selCls} flex-1`}>
+                  <option value="">— 選擇帳號 —</option>
+                  {availableProfiles.map(p => <option key={p.id} value={p.id}>{(p.full_name || p.email)}（{ROLE_MAP[p.role]?.label || p.role}）</option>)}
+                </select>
+                <select value={newPartRel} onChange={e => setNewPartRel(e.target.value)} className={selCls}>
+                  {RELATIONS.map(r => <option key={r.key} value={r.key}>{r.label}</option>)}
+                </select>
+                <button onClick={addParticipantFn} disabled={!newPartId} className="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-700 disabled:opacity-50"><Plus className="w-3.5 h-3.5"/>加入</button>
+              </div>
+              <p className="text-[10px] text-slate-400 mt-2">提示:對方需先自行註冊帳號,並在「使用者」頁設好角色,才會出現在上方清單。</p>
+            </div>
+          )}
         </aside>
       </div>
     </div>
