@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, FileSpreadsheet, Send, RefreshCw, Paperclip, MessageSquare, User, Users, Plus, X, Factory, ClipboardCheck, Truck, LayoutList, LifeBuoy } from 'lucide-react'
+import { ArrowLeft, FileSpreadsheet, Send, RefreshCw, Paperclip, MessageSquare, User, Users, Plus, X, Factory, ClipboardCheck, Truck, LayoutList, LifeBuoy, Star } from 'lucide-react'
 import StageBadge from '../components/StageBadge'
 import Timeline from '../components/Timeline'
 import AttachmentList from '../components/AttachmentList'
@@ -9,13 +9,14 @@ import ProductionPanel from '../features/production/ProductionPanel'
 import QcPanel from '../features/qc/QcPanel'
 import DeliveryPanel from '../features/delivery/DeliveryPanel'
 import TicketsPanel from '../features/tickets/TicketsPanel'
+import StarRating from '../components/StarRating'
 import { useAuth } from '../contexts/AuthContext'
 import { useSync } from '../contexts/SyncContext'
 import * as api from '../lib/api'
 import { supabase } from '../supabase'
 import { STAGES, STAGE_MAP, STATUSES, ROLE_MAP } from '../lib/constants'
 import { uploadCaseFile, removeCaseFile } from '../lib/storage'
-import { nt, num } from '../lib/format'
+import { nt, num, fromNow } from '../lib/format'
 
 const RELATIONS = [
   { key: 'customer', label: '客戶' },
@@ -53,6 +54,9 @@ export default function CaseDetailPage() {
   const [newPartId, setNewPartId] = useState('')
   const [newPartRel, setNewPartRel] = useState('customer')
   const [subtab, setSubtab] = useState('overview')
+  const [feedbackList, setFeedbackList] = useState([])
+  const [fbRating, setFbRating] = useState(0)
+  const [fbComment, setFbComment] = useState('')
   const [loading, setLoading] = useState(true)
 
   const loadCase = async () => { const { data } = await api.getCase(id); setCaseItem(data || null) }
@@ -72,6 +76,7 @@ export default function CaseDetailPage() {
   const loadParticipants = async () => { const { data } = await api.listParticipants(id); setParticipants(data || []) }
   const loadPublicQuote = async () => { const { data } = await api.listPublicQuoteItems(id); setPublicItems(data || []) }
   const refreshCase = () => Promise.all([loadCase(), loadFeeds()])
+  const loadFeedback = async () => { const { data } = await api.listFeedback(id); setFeedbackList(data || []) }
 
   useEffect(() => {
     setLoading(true)
@@ -79,6 +84,7 @@ export default function CaseDetailPage() {
       loadCase(), loadFeeds(),
       api.listCustomers().then(r => setCustomers(r.data || [])),
       api.listPublicProfiles().then(r => setProfiles(r.data || [])),
+      loadFeedback(),
     ]
     if (isInternal) {
       tasks.push(loadQuote(), loadParticipants(), api.listProfiles().then(r => setPickerProfiles(r.data || [])))
@@ -140,6 +146,15 @@ export default function CaseDetailPage() {
   const handleDeleteAttachment = async (a) => {
     if (!window.confirm(`刪除附件 ${a.filename}？`)) return
     await run(async () => { await removeCaseFile(a.path); await api.deleteAttachment(a.id); await loadFeeds() })
+  }
+
+  const submitFeedback = () => {
+    if (!fbRating) return
+    return run(async () => {
+      await api.addFeedback({ case_id: id, rating: fbRating, comment: fbComment || null, submitted_by: profile?.id })
+      setFbRating(0); setFbComment('')
+      await loadFeedback()
+    })
   }
 
   const addParticipantFn = () => {
@@ -282,6 +297,29 @@ export default function CaseDetailPage() {
               <FileUpload onUpload={handleUpload}/>
             </div>
             <AttachmentList attachments={attachments} onDelete={handleDeleteAttachment}/>
+          </div>
+
+          {/* 滿意度回饋 */}
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+            <h2 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2"><Star className="w-4 h-4 text-slate-400"/>滿意度回饋</h2>
+            {feedbackList.length === 0 && <p className="text-xs text-slate-400">{profile?.role === 'customer' ? '完成後歡迎給我們評分。' : '客戶尚未回饋。'}</p>}
+            <div className="space-y-3">
+              {feedbackList.map(f => (
+                <div key={f.id} className="border-b border-slate-50 pb-2 last:border-0">
+                  <StarRating value={f.rating} readOnly size="w-4 h-4"/>
+                  {f.comment && <div className="text-xs text-slate-600 mt-1">{f.comment}</div>}
+                  <div className="text-[11px] text-slate-400 mt-0.5">{profilesMap[f.submitted_by] || '客戶'} · {fromNow(f.created_at)}</div>
+                </div>
+              ))}
+            </div>
+            {profile?.role === 'customer' && (
+              <div className="mt-3 pt-3 border-t border-slate-100 space-y-2">
+                <p className="text-xs text-slate-500">為這次服務評分:</p>
+                <StarRating value={fbRating} onChange={setFbRating}/>
+                <textarea value={fbComment} onChange={e => setFbComment(e.target.value)} rows={2} placeholder="想說的話(可選)…" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400 resize-none"/>
+                <button onClick={submitFeedback} disabled={!fbRating} className="w-full py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 disabled:opacity-40">送出評分</button>
+              </div>
+            )}
           </div>
 
           {/* 參與者 (內部管理) */}

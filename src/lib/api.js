@@ -120,3 +120,9 @@ export const listNotifications        = () =>
   supabase.from('notifications').select('*').order('created_at', { ascending: false }).limit(30)
 export const markNotificationRead     = (id) => supabase.from('notifications').update({ is_read: true }).eq('id', id)
 export const markAllNotificationsRead = () => supabase.from('notifications').update({ is_read: true }).eq('is_read', false)
+
+// ── 第八階段:滿意度回饋 ────────────────────────────────────
+export const listFeedback    = (caseId) =>
+  supabase.from('feedback').select('*').eq('case_id', caseId).order('created_at', { ascending: false })
+export const addFeedback     = (f) => supabase.from('feedback').insert(f)
+export const listAllFeedback = () => supabase.from('feedback').select('rating')
