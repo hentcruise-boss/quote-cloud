@@ -52,3 +52,38 @@ export const EVENT_LABELS = {
   attachment:     '上傳檔案',
   note:           '備註',
 }
+
+// ── 第三階段:生產 / QC / 交貨 ──────────────────────────────
+export const PRODUCTION_STATUS = [
+  { key:'pending',     label:'待生產', badge:'bg-slate-100 text-slate-600'  },
+  { key:'in_progress', label:'生產中', badge:'bg-amber-100 text-amber-700'  },
+  { key:'done',        label:'完成',   badge:'bg-emerald-100 text-emerald-700' },
+  { key:'blocked',     label:'卡關',   badge:'bg-rose-100 text-rose-700'    },
+]
+export const PRODUCTION_STATUS_MAP = Object.fromEntries(PRODUCTION_STATUS.map(s => [s.key, s]))
+
+export const QC_RESULT = [
+  { key:'pending', label:'未檢',   badge:'bg-slate-100 text-slate-600' },
+  { key:'pass',    label:'合格',   badge:'bg-emerald-100 text-emerald-700' },
+  { key:'fail',    label:'不合格', badge:'bg-rose-100 text-rose-700' },
+  { key:'na',      label:'不適用', badge:'bg-slate-100 text-slate-400' },
+]
+export const QC_RESULT_MAP = Object.fromEntries(QC_RESULT.map(s => [s.key, s]))
+
+export const DELIVERY_STATUS = [
+  { key:'pending',   label:'待交貨', badge:'bg-slate-100 text-slate-600' },
+  { key:'delivered', label:'已送達', badge:'bg-amber-100 text-amber-700' },
+  { key:'signed',    label:'已簽收', badge:'bg-emerald-100 text-emerald-700' },
+]
+export const DELIVERY_STATUS_MAP = Object.fromEntries(DELIVERY_STATUS.map(s => [s.key, s]))
+
+// QC 預設檢查表
+export const QC_TEMPLATE = [
+  '外觀無刮傷/破損',
+  '尺寸符合規格',
+  '顏色/材質正確',
+  '五金配件齊全',
+  '功能正常(抽屜/門/升降)',
+  '安裝穩固、水平',
+  '現場清潔完成',
+]

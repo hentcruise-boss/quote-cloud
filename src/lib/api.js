@@ -79,3 +79,25 @@ export const removeParticipant = (caseId, profileId) =>
 // 工具: 把 profiles 陣列轉成 id → 顯示名稱 map
 export const profileNameMap = (profiles) =>
   Object.fromEntries((profiles || []).map(p => [p.id, p.full_name || p.email || '未知']))
+
+// ── 第三階段:生產 / QC / 交貨 ──────────────────────────────
+// 生產排程
+export const listProductionTasks = (caseId) =>
+  supabase.from('production_tasks').select('*').eq('case_id', caseId).order('sort_order').order('created_at')
+export const addProductionTask    = (t) => supabase.from('production_tasks').insert(t)
+export const updateProductionTask = (id, patch) => supabase.from('production_tasks').update(patch).eq('id', id)
+export const deleteProductionTask = (id) => supabase.from('production_tasks').delete().eq('id', id)
+
+// QC 檢查
+export const listQcChecks  = (caseId) =>
+  supabase.from('qc_checks').select('*').eq('case_id', caseId).order('sort_order').order('created_at')
+export const addQcChecks   = (rows) => supabase.from('qc_checks').insert(rows)
+export const updateQcCheck = (id, patch) => supabase.from('qc_checks').update(patch).eq('id', id)
+export const deleteQcCheck = (id) => supabase.from('qc_checks').delete().eq('id', id)
+
+// 交貨簽收
+export const listDeliveries = (caseId) =>
+  supabase.from('delivery_records').select('*').eq('case_id', caseId).order('created_at')
+export const addDelivery    = (d) => supabase.from('delivery_records').insert(d).select().single()
+export const updateDelivery = (id, patch) => supabase.from('delivery_records').update(patch).eq('id', id)
+export const deleteDelivery = (id) => supabase.from('delivery_records').delete().eq('id', id)

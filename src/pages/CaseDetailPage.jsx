@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, FileSpreadsheet, Send, RefreshCw, Paperclip, MessageSquare, User, Users, Plus, X } from 'lucide-react'
+import { ArrowLeft, FileSpreadsheet, Send, RefreshCw, Paperclip, MessageSquare, User, Users, Plus, X, Factory, ClipboardCheck, Truck, LayoutList } from 'lucide-react'
 import StageBadge from '../components/StageBadge'
 import Timeline from '../components/Timeline'
 import AttachmentList from '../components/AttachmentList'
 import FileUpload from '../components/FileUpload'
+import ProductionPanel from '../features/production/ProductionPanel'
+import QcPanel from '../features/qc/QcPanel'
+import DeliveryPanel from '../features/delivery/DeliveryPanel'
 import { useAuth } from '../contexts/AuthContext'
 import { useSync } from '../contexts/SyncContext'
 import * as api from '../lib/api'
@@ -20,6 +23,13 @@ const RELATIONS = [
   { key: 'watcher',  label: '旁觀' },
 ]
 const RELATION_MAP = Object.fromEntries(RELATIONS.map(r => [r.key, r.label]))
+
+const SUBTABS = [
+  { key: 'overview',   label: '總覽',   icon: <LayoutList className="w-4 h-4"/> },
+  { key: 'production', label: '生產',   icon: <Factory className="w-4 h-4"/> },
+  { key: 'qc',         label: 'QC驗收', icon: <ClipboardCheck className="w-4 h-4"/> },
+  { key: 'delivery',   label: '交貨',   icon: <Truck className="w-4 h-4"/> },
+]
 
 export default function CaseDetailPage() {
   const { id } = useParams()
@@ -40,6 +50,7 @@ export default function CaseDetailPage() {
   const [commentText, setCommentText] = useState('')
   const [newPartId, setNewPartId] = useState('')
   const [newPartRel, setNewPartRel] = useState('customer')
+  const [subtab, setSubtab] = useState('overview')
   const [loading, setLoading] = useState(true)
 
   const loadCase = async () => { const { data } = await api.getCase(id); setCaseItem(data || null) }
@@ -58,6 +69,7 @@ export default function CaseDetailPage() {
   }
   const loadParticipants = async () => { const { data } = await api.listParticipants(id); setParticipants(data || []) }
   const loadPublicQuote = async () => { const { data } = await api.listPublicQuoteItems(id); setPublicItems(data || []) }
+  const refreshCase = () => Promise.all([loadCase(), loadFeeds()])
 
   useEffect(() => {
     setLoading(true)
@@ -183,7 +195,20 @@ export default function CaseDetailPage() {
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-5">
+      <div className="flex gap-1 border-b border-slate-200 overflow-x-auto">
+        {SUBTABS.map(s => (
+          <button key={s.key} onClick={() => setSubtab(s.key)}
+            className={`inline-flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold border-b-2 whitespace-nowrap transition-colors ${subtab === s.key ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+            {s.icon}{s.label}
+          </button>
+        ))}
+      </div>
+
+      {subtab === 'production' && <ProductionPanel caseId={id} caseItem={caseItem} isInternal={isInternal} onCaseChange={refreshCase}/>}
+      {subtab === 'qc' && <QcPanel caseId={id} caseItem={caseItem} isInternal={isInternal} onCaseChange={refreshCase}/>}
+      {subtab === 'delivery' && <DeliveryPanel caseId={id} caseItem={caseItem} isInternal={isInternal} onCaseChange={refreshCase}/>}
+
+      {subtab === 'overview' && <div className="grid lg:grid-cols-3 gap-5">
         {/* 左:留言 + 時間軸 */}
         <section className="lg:col-span-2 space-y-4">
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
@@ -283,7 +308,7 @@ export default function CaseDetailPage() {
             </div>
           )}
         </aside>
-      </div>
+      </div>}
     </div>
   )
 }
