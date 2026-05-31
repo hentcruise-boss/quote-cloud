@@ -5,6 +5,7 @@
 1. **`001_schema.sql`** — 建立 `profiles / customers / cases / quotes / case_events / comments / attachments / case_participants`,並為 `quote_items` 加上 `quote_id`、`export_history` 加上 `case_id`。
 2. **`002_backfill.sql`** — 把既有 `projects` 搬遷成 `cases`(每案一筆 `quote`),既有報價清單改掛 `quote_id`。原 `projects` 保留不刪(回滾用)。
 3. **`003_rls.sql`** — 開啟 RLS 與 Storage,**關閉匿名外網**,資料自此需登入存取。
+4. **`004_phase2_rls.sql`**(第二階段)— 開放客戶/供應商/現場依「參與者」存取,並建立 `quote_items_public` 乾淨視圖(對外不含成本)。
 
 > 每個檔案都可重複執行(idempotent)。
 
@@ -25,9 +26,12 @@ update profiles set role = 'admin' where email = '你的email@example.com';
 |------|------|------------------|
 | `admin` | 管理員 | 全部 + 使用者管理 |
 | `staff` | 內部員工 | 全部案件、報價、產品、場景 |
-| `customer` / `supplier` / `field` | 客戶 / 供應商 / 現場 | 第二階段才開放登入(schema 已預留) |
+| `customer` / `supplier` / `field` | 客戶 / 供應商 / 現場 | (執行 004 後)只看被指派的案件、留言、上傳;**看不到成本** |
 
-## 第二階段(尚未執行)
+## 第二階段(004,對外開放)
 
-之後會加入 `is_internal()` + `can_see_case()` 的細緻 RLS、`quote_items_public` 乾淨視圖
-(對外移除成本/廠商/毛利欄位),以及客戶/供應商/現場登入。
+`004_phase2_rls.sql` 加入 `can_see_case()` 細緻 RLS、`quote_items_public` / `public_profiles`
+視圖(對外移除成本/廠商/毛利)、附件→事件 trigger,以及 Storage 參與者政策。
+
+外部帳號採「輕量版邀請」:對方自行用 email/密碼**註冊一次** → 管理員在「使用者」頁設定其角色
+(客戶/供應商/現場)、在案件詳情的「**參與者**」面板把他加入指定案件 → 他登入後只看得到那些案件。
