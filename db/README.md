@@ -9,6 +9,7 @@
 5. **`005_phase3.sql`**(第三階段)— 生產排程 / QC 檢查 / 交貨簽收三個模組(參與者可讀、內部可寫)。
 6. **`006_phase4_tickets.sql`**(第四階段)— 售後 / 保固工單(參與者可讀、可建立報修;內部管理狀態)。
 7. **`007_phase6_notifications.sql`**(站內通知)— `notifications` 表 + trigger:事件/留言自動通知「參與者+負責人」。
+8. **`008_phase8_feedback.sql`**(滿意度回饋)— `feedback` 表(客戶評分 1–5★ + 留言;參與者可讀、客戶可提交)。
 
 > 每個檔案都可重複執行(idempotent)。
 
