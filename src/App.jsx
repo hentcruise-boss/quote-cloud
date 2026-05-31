@@ -7,6 +7,7 @@ import { INTERNAL_ROLES } from './lib/constants'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import CasesBoardPage from './pages/CasesBoardPage'
+import SchedulePage from './pages/SchedulePage'
 import CaseDetailPage from './pages/CaseDetailPage'
 import QuoteWorkspace from './pages/QuoteWorkspace'
 import ProductsPage from './pages/ProductsPage'
@@ -41,6 +42,7 @@ export default function App() {
           <Route path="/" element={<Navigate to="/cases" replace />} />
           <Route path="/dashboard" element={<RoleGate allow={INTERNAL_ROLES}><DashboardPage /></RoleGate>} />
           <Route path="/cases" element={<CasesBoardPage />} />
+          <Route path="/schedule" element={<RoleGate allow={INTERNAL_ROLES}><SchedulePage /></RoleGate>} />
           <Route path="/cases/:id" element={<CaseDetailPage />} />
           <Route path="/cases/:id/quote" element={<RoleGate allow={INTERNAL_ROLES}><QuoteWorkspace /></RoleGate>} />
           <Route path="/products" element={<RoleGate allow={INTERNAL_ROLES}><ProductsPage /></RoleGate>} />

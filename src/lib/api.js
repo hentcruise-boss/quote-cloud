@@ -112,6 +112,7 @@ export const deleteTicket = (id) => supabase.from('tickets').delete().eq('id', i
 // ── 第五階段:儀表板彙整查詢 (內部) ─────────────────────────
 export const listAllTickets         = () => supabase.from('tickets').select('*')
 export const listAllProductionTasks = () => supabase.from('production_tasks').select('*')
+export const listAllDeliveries      = () => supabase.from('delivery_records').select('*')
 export const listRecentEvents       = (limit = 20) =>
   supabase.from('case_events').select('*').order('created_at', { ascending: false }).limit(limit)
 

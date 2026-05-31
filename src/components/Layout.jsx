@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { Building2, LayoutDashboard, LayoutGrid, Package, LayoutTemplate, Users, LogOut, Menu, X } from 'lucide-react'
+import { Building2, LayoutDashboard, LayoutGrid, CalendarDays, Package, LayoutTemplate, Users, LogOut, Menu, X } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useSync } from '../contexts/SyncContext'
 import SyncBadge from './SyncBadge'
@@ -16,6 +16,7 @@ export default function Layout() {
   const nav = [
     { to: '/dashboard',   label: '儀表板',     icon: <LayoutDashboard className="w-4 h-4"/>, show: isInternal },
     { to: '/cases',       label: '案件看板',   icon: <LayoutGrid className="w-4 h-4"/>,     show: true },
+    { to: '/schedule',    label: '排程',       icon: <CalendarDays className="w-4 h-4"/>,   show: isInternal },
     { to: '/products',    label: '產品資料庫', icon: <Package className="w-4 h-4"/>,        show: isInternal },
     { to: '/scenes',      label: '場景模板',   icon: <LayoutTemplate className="w-4 h-4"/>, show: isInternal },
     { to: '/admin/users', label: '使用者',     icon: <Users className="w-4 h-4"/>,          show: role === 'admin' },
