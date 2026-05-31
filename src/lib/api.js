@@ -101,3 +101,10 @@ export const listDeliveries = (caseId) =>
 export const addDelivery    = (d) => supabase.from('delivery_records').insert(d).select().single()
 export const updateDelivery = (id, patch) => supabase.from('delivery_records').update(patch).eq('id', id)
 export const deleteDelivery = (id) => supabase.from('delivery_records').delete().eq('id', id)
+
+// ── 第四階段:售後工單 ──────────────────────────────────────
+export const listTickets  = (caseId) =>
+  supabase.from('tickets').select('*').eq('case_id', caseId).order('created_at', { ascending: false })
+export const addTicket    = (t) => supabase.from('tickets').insert(t).select().single()
+export const updateTicket = (id, patch) => supabase.from('tickets').update(patch).eq('id', id)
+export const deleteTicket = (id) => supabase.from('tickets').delete().eq('id', id)

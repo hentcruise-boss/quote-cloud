@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, FileSpreadsheet, Send, RefreshCw, Paperclip, MessageSquare, User, Users, Plus, X, Factory, ClipboardCheck, Truck, LayoutList } from 'lucide-react'
+import { ArrowLeft, FileSpreadsheet, Send, RefreshCw, Paperclip, MessageSquare, User, Users, Plus, X, Factory, ClipboardCheck, Truck, LayoutList, LifeBuoy } from 'lucide-react'
 import StageBadge from '../components/StageBadge'
 import Timeline from '../components/Timeline'
 import AttachmentList from '../components/AttachmentList'
@@ -8,6 +8,7 @@ import FileUpload from '../components/FileUpload'
 import ProductionPanel from '../features/production/ProductionPanel'
 import QcPanel from '../features/qc/QcPanel'
 import DeliveryPanel from '../features/delivery/DeliveryPanel'
+import TicketsPanel from '../features/tickets/TicketsPanel'
 import { useAuth } from '../contexts/AuthContext'
 import { useSync } from '../contexts/SyncContext'
 import * as api from '../lib/api'
@@ -29,6 +30,7 @@ const SUBTABS = [
   { key: 'production', label: '生產',   icon: <Factory className="w-4 h-4"/> },
   { key: 'qc',         label: 'QC驗收', icon: <ClipboardCheck className="w-4 h-4"/> },
   { key: 'delivery',   label: '交貨',   icon: <Truck className="w-4 h-4"/> },
+  { key: 'tickets',    label: '售後',   icon: <LifeBuoy className="w-4 h-4"/> },
 ]
 
 export default function CaseDetailPage() {
@@ -207,6 +209,7 @@ export default function CaseDetailPage() {
       {subtab === 'production' && <ProductionPanel caseId={id} caseItem={caseItem} isInternal={isInternal} onCaseChange={refreshCase}/>}
       {subtab === 'qc' && <QcPanel caseId={id} caseItem={caseItem} isInternal={isInternal} onCaseChange={refreshCase}/>}
       {subtab === 'delivery' && <DeliveryPanel caseId={id} caseItem={caseItem} isInternal={isInternal} onCaseChange={refreshCase}/>}
+      {subtab === 'tickets' && <TicketsPanel caseId={id} isInternal={isInternal} profilesMap={profilesMap}/>}
 
       {subtab === 'overview' && <div className="grid lg:grid-cols-3 gap-5">
         {/* 左:留言 + 時間軸 */}

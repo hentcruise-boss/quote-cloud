@@ -87,3 +87,27 @@ export const QC_TEMPLATE = [
   '安裝穩固、水平',
   '現場清潔完成',
 ]
+
+// ── 第四階段:售後工單 ──────────────────────────────────────
+export const TICKET_STATUS = [
+  { key:'open',        label:'待處理', badge:'bg-amber-100 text-amber-700'   },
+  { key:'in_progress', label:'處理中', badge:'bg-indigo-100 text-indigo-700' },
+  { key:'resolved',    label:'已解決', badge:'bg-emerald-100 text-emerald-700' },
+  { key:'closed',      label:'已結案', badge:'bg-slate-100 text-slate-500'   },
+]
+export const TICKET_STATUS_MAP = Object.fromEntries(TICKET_STATUS.map(s => [s.key, s]))
+
+export const TICKET_PRIORITY = [
+  { key:'low',    label:'低',   badge:'bg-slate-100 text-slate-500' },
+  { key:'normal', label:'一般', badge:'bg-sky-100 text-sky-700'     },
+  { key:'high',   label:'緊急', badge:'bg-rose-100 text-rose-700'   },
+]
+export const TICKET_PRIORITY_MAP = Object.fromEntries(TICKET_PRIORITY.map(s => [s.key, s]))
+
+export const TICKET_CATEGORY = [
+  { key:'warranty',  label:'保固'     },
+  { key:'service',   label:'維修服務' },
+  { key:'complaint', label:'客訴'     },
+  { key:'other',     label:'其他'     },
+]
+export const TICKET_CATEGORY_MAP = Object.fromEntries(TICKET_CATEGORY.map(s => [s.key, s]))
