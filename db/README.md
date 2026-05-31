@@ -6,6 +6,7 @@
 2. **`002_backfill.sql`** — 把既有 `projects` 搬遷成 `cases`(每案一筆 `quote`),既有報價清單改掛 `quote_id`。原 `projects` 保留不刪(回滾用)。
 3. **`003_rls.sql`** — 開啟 RLS 與 Storage,**關閉匿名外網**,資料自此需登入存取。
 4. **`004_phase2_rls.sql`**(第二階段)— 開放客戶/供應商/現場依「參與者」存取,並建立 `quote_items_public` 乾淨視圖(對外不含成本)。
+5. **`005_phase3.sql`**(第三階段)— 生產排程 / QC 檢查 / 交貨簽收三個模組(參與者可讀、內部可寫)。
 
 > 每個檔案都可重複執行(idempotent)。
 
