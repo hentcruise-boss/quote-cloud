@@ -111,3 +111,11 @@ export const TICKET_CATEGORY = [
   { key:'other',     label:'其他'     },
 ]
 export const TICKET_CATEGORY_MAP = Object.fromEntries(TICKET_CATEGORY.map(s => [s.key, s]))
+
+// ── 第九階段:請款狀態 ──────────────────────────────────────
+export const INVOICE_STATUS = [
+  { key:'pending',  label:'待請款', badge:'bg-slate-100 text-slate-600'   },
+  { key:'invoiced', label:'已請款', badge:'bg-amber-100 text-amber-700'   },
+  { key:'paid',     label:'已收款', badge:'bg-emerald-100 text-emerald-700' },
+]
+export const INVOICE_STATUS_MAP = Object.fromEntries(INVOICE_STATUS.map(s => [s.key, s]))

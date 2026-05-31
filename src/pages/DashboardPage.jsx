@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { LayoutDashboard, Briefcase, Activity, LifeBuoy, AlertTriangle, RefreshCw, Star, Download } from 'lucide-react'
+import { LayoutDashboard, Briefcase, Activity, LifeBuoy, AlertTriangle, RefreshCw, Star, Download, Receipt } from 'lucide-react'
 import * as api from '../lib/api'
 import { STAGES, STAGE_MAP, STATUS_MAP } from '../lib/constants'
-import { fromNow } from '../lib/format'
+import { fromNow, num } from '../lib/format'
 import { downloadCSV } from '../lib/csv'
 
 const todayStr = () => new Date().toISOString().slice(0, 10)
@@ -34,6 +34,7 @@ export default function DashboardPage() {
   const [events, setEvents] = useState([])
   const [profiles, setProfiles] = useState([])
   const [ratings, setRatings] = useState([])
+  const [invoices, setInvoices] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -45,6 +46,7 @@ export default function DashboardPage() {
       api.listRecentEvents(20).then(r => setEvents(r.data || [])),
       api.listPublicProfiles().then(r => setProfiles(r.data || [])),
       api.listAllFeedback().then(r => setRatings((r.data || []).map(f => f.rating))),
+      api.listAllInvoices().then(r => setInvoices(r.data || [])),
     ]).finally(() => setLoading(false))
   }, [])
 
@@ -55,6 +57,7 @@ export default function DashboardPage() {
   const openTickets = tickets.filter(t => t.status === 'open' || t.status === 'in_progress')
   const overdueProd = prodTasks.filter(t => t.planned_end && t.planned_end < todayStr() && t.status !== 'done')
   const avgSat = ratings.length ? ratings.reduce((s, r) => s + r, 0) / ratings.length : null
+  const outstanding = invoices.filter(v => v.status !== 'paid').reduce((s, v) => s + Number(v.amount), 0)
   const maxStage = Math.max(1, ...STAGES.map(s => cases.filter(c => c.stage === s.key).length))
 
   const exportCases = () => {
@@ -76,12 +79,13 @@ export default function DashboardPage() {
         <button onClick={exportCases} className="inline-flex items-center gap-1.5 px-3 py-2 border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-white"><Download className="w-4 h-4"/>匯出案件 CSV</button>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard icon={<Briefcase className="w-5 h-5"/>} label="案件總數" value={cases.length} tone="slate"/>
         <StatCard icon={<Activity className="w-5 h-5"/>} label="進行中案件" value={activeCases.length} tone="indigo"/>
         <StatCard icon={<LifeBuoy className="w-5 h-5"/>} label="待處理工單" value={openTickets.length} tone="amber"/>
         <StatCard icon={<AlertTriangle className="w-5 h-5"/>} label="逾期生產項目" value={overdueProd.length} tone="rose"/>
         <StatCard icon={<Star className="w-5 h-5"/>} label="平均滿意度" value={avgSat ? `${avgSat.toFixed(1)}★` : '—'} tone="amber"/>
+        <StatCard icon={<Receipt className="w-5 h-5"/>} label="未收款項 (NT$)" value={num(outstanding)} tone="rose"/>
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">

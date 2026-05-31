@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, FileSpreadsheet, Send, RefreshCw, Paperclip, MessageSquare, User, Users, Plus, X, Factory, ClipboardCheck, Truck, LayoutList, LifeBuoy, Star } from 'lucide-react'
+import { ArrowLeft, FileSpreadsheet, Send, RefreshCw, Paperclip, MessageSquare, User, Users, Plus, X, Factory, ClipboardCheck, Truck, LayoutList, LifeBuoy, Star, Receipt } from 'lucide-react'
 import StageBadge from '../components/StageBadge'
 import Timeline from '../components/Timeline'
 import AttachmentList from '../components/AttachmentList'
@@ -10,6 +10,7 @@ import QcPanel from '../features/qc/QcPanel'
 import DeliveryPanel from '../features/delivery/DeliveryPanel'
 import TicketsPanel from '../features/tickets/TicketsPanel'
 import StarRating from '../components/StarRating'
+import BillingPanel from '../features/billing/BillingPanel'
 import { useAuth } from '../contexts/AuthContext'
 import { useSync } from '../contexts/SyncContext'
 import * as api from '../lib/api'
@@ -32,6 +33,7 @@ const SUBTABS = [
   { key: 'qc',         label: 'QC驗收', icon: <ClipboardCheck className="w-4 h-4"/> },
   { key: 'delivery',   label: '交貨',   icon: <Truck className="w-4 h-4"/> },
   { key: 'tickets',    label: '售後',   icon: <LifeBuoy className="w-4 h-4"/> },
+  { key: 'billing',    label: '請款',   icon: <Receipt className="w-4 h-4"/>, internalOnly: true },
 ]
 
 export default function CaseDetailPage() {
@@ -213,7 +215,7 @@ export default function CaseDetailPage() {
       </div>
 
       <div className="flex gap-1 border-b border-slate-200 overflow-x-auto">
-        {SUBTABS.map(s => (
+        {SUBTABS.filter(s => !s.internalOnly || isInternal).map(s => (
           <button key={s.key} onClick={() => setSubtab(s.key)}
             className={`inline-flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold border-b-2 whitespace-nowrap transition-colors ${subtab === s.key ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
             {s.icon}{s.label}
@@ -225,6 +227,7 @@ export default function CaseDetailPage() {
       {subtab === 'qc' && <QcPanel caseId={id} caseItem={caseItem} isInternal={isInternal} onCaseChange={refreshCase}/>}
       {subtab === 'delivery' && <DeliveryPanel caseId={id} caseItem={caseItem} isInternal={isInternal} onCaseChange={refreshCase}/>}
       {subtab === 'tickets' && <TicketsPanel caseId={id} isInternal={isInternal} profilesMap={profilesMap}/>}
+      {subtab === 'billing' && isInternal && <BillingPanel caseId={id}/>}
 
       {subtab === 'overview' && <div className="grid lg:grid-cols-3 gap-5">
         {/* 左:留言 + 時間軸 */}

@@ -127,3 +127,14 @@ export const listFeedback    = (caseId) =>
   supabase.from('feedback').select('*').eq('case_id', caseId).order('created_at', { ascending: false })
 export const addFeedback     = (f) => supabase.from('feedback').insert(f)
 export const listAllFeedback = () => supabase.from('feedback').select('rating')
+
+// ── 第九階段:合約 / 請款 (內部) ────────────────────────────
+export const listContracts  = (caseId) => supabase.from('contracts').select('*').eq('case_id', caseId).order('created_at')
+export const createContract = (c) => supabase.from('contracts').insert(c).select().single()
+export const updateContract = (id, patch) => supabase.from('contracts').update(patch).eq('id', id)
+export const listInvoices   = (caseId) =>
+  supabase.from('invoices').select('*').eq('case_id', caseId).order('due_date', { nullsFirst: true }).order('created_at')
+export const addInvoice     = (v) => supabase.from('invoices').insert(v)
+export const updateInvoice  = (id, patch) => supabase.from('invoices').update(patch).eq('id', id)
+export const deleteInvoice  = (id) => supabase.from('invoices').delete().eq('id', id)
+export const listAllInvoices = () => supabase.from('invoices').select('amount,status')
