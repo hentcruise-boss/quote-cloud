@@ -13,7 +13,7 @@ export default function ContactFab() {
   return (
     <>
       <button onClick={() => setOpen(true)}
-        className="fixed right-4 bottom-20 z-40 flex items-center gap-2 rounded-full bg-teal-700 px-4 py-3 text-white shadow-lg shadow-teal-700/30 active:scale-95 transition">
+        className="fixed right-4 bottom-20 z-40 flex items-center gap-2 rounded-full bg-teal-700 px-4 py-3 text-white shadow-lg shadow-teal-700/30 active:scale-95 transition print:hidden">
         <Headset className="w-5 h-5" />
         <span className="text-sm font-semibold hidden sm:inline">聯絡專員</span>
       </button>

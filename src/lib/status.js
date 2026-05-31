@@ -23,3 +23,15 @@ export const nextStatus = (k) => {
   const i = statusIndex(k)
   return i >= 0 && i < ORDER_FLOW.length - 1 ? ORDER_FLOW[i + 1].key : null
 }
+
+// 出庫申請狀態（模組 5）
+export const RELEASE_STATUS = {
+  pending: '待處理', approved: '已核准出庫', rejected: '已拒絕', cancelled: '已取消',
+}
+export const releaseLabel = (k) => RELEASE_STATUS[k] || k
+
+// 對帳單狀態（模組 6）
+export const STATEMENT_STATUS = {
+  open: '未結', partial: '部分付款', paid: '已結清',
+}
+export const statementLabel = (k) => STATEMENT_STATUS[k] || k

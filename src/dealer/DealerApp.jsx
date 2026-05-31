@@ -11,6 +11,10 @@ import Cart from './pages/Cart'
 import Orders from './pages/Orders'
 import OrderDetail from './pages/OrderDetail'
 import Favorites from './pages/Favorites'
+import Account from './pages/Account'
+import Inventory from './pages/Inventory'
+import Billing from './pages/Billing'
+import StatementDetail from './pages/StatementDetail'
 
 // 已登入、但找不到對應經銷商資料（帳號尚未開通）
 function NotProvisioned() {
@@ -48,6 +52,10 @@ export default function DealerApp() {
           <Route path="orders" element={<Orders />} />
           <Route path="orders/:id" element={<OrderDetail />} />
           <Route path="favorites" element={<Favorites />} />
+          <Route path="account" element={<Account />} />
+          <Route path="inventory" element={<Inventory />} />
+          <Route path="billing" element={<Billing />} />
+          <Route path="billing/:id" element={<StatementDetail />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </DealerLayout>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Home, LayoutGrid, ShoppingCart, ClipboardList, Heart, Bell, LogOut, Sofa } from 'lucide-react'
+import { Home, LayoutGrid, ShoppingCart, ClipboardList, User, Bell, LogOut, Sofa } from 'lucide-react'
 import { useAuth } from '../lib/auth'
 import { useCart } from '../lib/cart'
 import { fetchNotifications, markNotificationRead } from '../lib/data'
@@ -10,9 +10,9 @@ import ContactFab from './ContactFab'
 const NAV = [
   { to: '/', icon: Home, label: '首頁', end: true },
   { to: '/catalog', icon: LayoutGrid, label: '選品' },
-  { to: '/cart', icon: ShoppingCart, label: '訂單', cart: true },
+  { to: '/cart', icon: ShoppingCart, label: '購物車', cart: true },
   { to: '/orders', icon: ClipboardList, label: '進度' },
-  { to: '/favorites', icon: Heart, label: '收藏' },
+  { to: '/account', icon: User, label: '我的' },
 ]
 
 function NotificationBell() {
@@ -66,8 +66,8 @@ export default function DealerLayout({ children }) {
   const navigate = useNavigate()
 
   return (
-    <div className="min-h-screen bg-stone-50 pb-20 font-sans text-stone-800">
-      <header className="sticky top-0 z-30 border-b border-stone-200 bg-white/90 backdrop-blur">
+    <div className="min-h-screen bg-stone-50 pb-20 font-sans text-stone-800 print:bg-white print:pb-0">
+      <header className="sticky top-0 z-30 border-b border-stone-200 bg-white/90 backdrop-blur print:hidden">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-700 text-white"><Sofa className="w-4 h-4" /></div>
@@ -93,7 +93,7 @@ export default function DealerLayout({ children }) {
 
       <ContactFab />
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-stone-200 bg-white">
+      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-stone-200 bg-white print:hidden">
         <div className="mx-auto flex max-w-3xl">
           {NAV.map(({ to, icon: Icon, label, end, cart }) => (
             <NavLink key={to} to={to} end={end}

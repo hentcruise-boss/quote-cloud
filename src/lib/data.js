@@ -97,3 +97,67 @@ export async function fetchNotifications(dealerId) {
 export async function markNotificationRead(id) {
   await supabase.from('notifications').update({ is_read: true }).eq('id', id)
 }
+
+// ============ 第二期：庫存代管（模組 5）============
+export async function fetchInventory(dealerId) {
+  if (!dealerId) return []
+  const { data } = await supabase.from('inventory').select('*').eq('dealer_id', dealerId).gt('qty', 0).order('name')
+  return data || []
+}
+
+export async function fetchMovements(dealerId) {
+  if (!dealerId) return []
+  const { data } = await supabase.from('inventory_movements').select('*').eq('dealer_id', dealerId)
+    .order('created_at', { ascending: false }).limit(100)
+  return data || []
+}
+
+export async function fetchReleaseRequests(dealerId) {
+  let q = supabase.from('release_requests').select('*').order('created_at', { ascending: false })
+  if (dealerId) q = q.eq('dealer_id', dealerId)
+  const { data } = await q
+  return data || []
+}
+
+export async function fetchReleaseItems(requestId) {
+  const { data } = await supabase.from('release_request_items').select('*').eq('request_id', requestId)
+  return data || []
+}
+
+const releaseNo = () => {
+  const d = new Date()
+  const ymd = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`
+  return `RL-${ymd}-${String(Math.floor(1000 + Math.random() * 9000))}`
+}
+
+// items: [{ sku, name, qty }]
+export async function createReleaseRequest({ dealerId, recipient, phone, address, note, items }) {
+  const { data: req, error } = await supabase.from('release_requests')
+    .insert({ request_no: releaseNo(), dealer_id: dealerId, status: 'pending', recipient, phone, address, note })
+    .select().single()
+  if (error) throw error
+  const rows = items.map(i => ({ request_id: req.id, sku: i.sku, name: i.name, qty: Number(i.qty) }))
+  const { error: e2 } = await supabase.from('release_request_items').insert(rows)
+  if (e2) throw e2
+  return req
+}
+
+export async function cancelReleaseRequest(id) {
+  await supabase.from('release_requests').update({ status: 'cancelled' }).eq('id', id)
+}
+
+// ============ 第二期：對帳中心（模組 6）============
+export async function fetchStatements(dealerId) {
+  let q = supabase.from('statements').select('*').order('period', { ascending: false })
+  if (dealerId) q = q.eq('dealer_id', dealerId)
+  const { data } = await q
+  return data || []
+}
+
+export async function fetchStatement(id) {
+  const { data: statement } = await supabase.from('statements').select('*').eq('id', id).maybeSingle()
+  if (!statement) return null
+  const { data: items } = await supabase.from('statement_items').select('*').eq('statement_id', id)
+  const { data: payments } = await supabase.from('payments').select('*').eq('statement_id', id).order('paid_at')
+  return { statement, items: items || [], payments: payments || [] }
+}

@@ -1,17 +1,21 @@
 import React from 'react'
 import { Routes, Route, NavLink, Navigate, useNavigate } from 'react-router-dom'
-import { Users, Package, Tags, ClipboardList, LogOut, ExternalLink } from 'lucide-react'
+import { Users, Package, Tags, ClipboardList, Boxes, ReceiptText, LogOut, ExternalLink } from 'lucide-react'
 import { useAuth } from '../lib/auth'
 import AdminDealers from './pages/AdminDealers'
 import AdminProducts from './pages/AdminProducts'
 import AdminPricing from './pages/AdminPricing'
 import AdminOrders from './pages/AdminOrders'
+import AdminInventory from './pages/AdminInventory'
+import AdminBilling from './pages/AdminBilling'
 
 const NAV = [
   { to: '/admin', end: true, icon: ClipboardList, label: '訂單' },
   { to: '/admin/dealers', icon: Users, label: '經銷商' },
   { to: '/admin/products', icon: Package, label: '產品' },
   { to: '/admin/pricing', icon: Tags, label: '定價等級' },
+  { to: '/admin/inventory', icon: Boxes, label: '庫存' },
+  { to: '/admin/billing', icon: ReceiptText, label: '對帳' },
 ]
 
 export default function AdminApp() {
@@ -34,7 +38,7 @@ export default function AdminApp() {
             <button onClick={async () => { await signOut(); navigate('/login') }} className="flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs text-slate-500 hover:bg-slate-50"><LogOut className="h-3.5 w-3.5" />登出</button>
           </div>
         </div>
-        <div className="mx-auto flex max-w-6xl gap-1 px-5">
+        <div className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-5">
           {NAV.map(({ to, end, icon: Icon, label }) => (
             <NavLink key={to} to={to} end={end}
               className={({ isActive }) => `inline-flex items-center gap-1.5 border-b-2 px-3 py-2.5 text-xs font-semibold transition ${isActive ? 'border-slate-800 text-slate-800' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
@@ -49,6 +53,8 @@ export default function AdminApp() {
           <Route path="dealers" element={<AdminDealers />} />
           <Route path="products" element={<AdminProducts />} />
           <Route path="pricing" element={<AdminPricing />} />
+          <Route path="inventory" element={<AdminInventory />} />
+          <Route path="billing" element={<AdminBilling />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>
       </main>
