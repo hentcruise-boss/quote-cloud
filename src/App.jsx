@@ -5,6 +5,7 @@ import Layout from './components/Layout'
 import RoleGate from './components/RoleGate'
 import { INTERNAL_ROLES } from './lib/constants'
 import LoginPage from './pages/LoginPage'
+import DashboardPage from './pages/DashboardPage'
 import CasesBoardPage from './pages/CasesBoardPage'
 import CaseDetailPage from './pages/CaseDetailPage'
 import QuoteWorkspace from './pages/QuoteWorkspace'
@@ -38,6 +39,7 @@ export default function App() {
       <Route element={<RequireAuth />}>
         <Route element={<Layout />}>
           <Route path="/" element={<Navigate to="/cases" replace />} />
+          <Route path="/dashboard" element={<RoleGate allow={INTERNAL_ROLES}><DashboardPage /></RoleGate>} />
           <Route path="/cases" element={<CasesBoardPage />} />
           <Route path="/cases/:id" element={<CaseDetailPage />} />
           <Route path="/cases/:id/quote" element={<RoleGate allow={INTERNAL_ROLES}><QuoteWorkspace /></RoleGate>} />
