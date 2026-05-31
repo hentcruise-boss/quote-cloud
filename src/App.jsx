@@ -1,26 +1,32 @@
+import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { RefreshCw } from 'lucide-react'
 import { useAuth } from './contexts/AuthContext'
 import Layout from './components/Layout'
 import RoleGate from './components/RoleGate'
 import { INTERNAL_ROLES } from './lib/constants'
-import LoginPage from './pages/LoginPage'
-import DashboardPage from './pages/DashboardPage'
-import CasesBoardPage from './pages/CasesBoardPage'
-import SchedulePage from './pages/SchedulePage'
-import CaseDetailPage from './pages/CaseDetailPage'
-import QuoteWorkspace from './pages/QuoteWorkspace'
-import ProductsPage from './pages/ProductsPage'
-import ScenesPage from './pages/ScenesPage'
-import AdminUsersPage from './pages/AdminUsersPage'
+
+// 程式碼分割:各頁面按需載入,縮小首屏 bundle
+const LoginPage      = lazy(() => import('./pages/LoginPage'))
+const DashboardPage  = lazy(() => import('./pages/DashboardPage'))
+const CasesBoardPage = lazy(() => import('./pages/CasesBoardPage'))
+const SchedulePage   = lazy(() => import('./pages/SchedulePage'))
+const CaseDetailPage = lazy(() => import('./pages/CaseDetailPage'))
+const QuoteWorkspace = lazy(() => import('./pages/QuoteWorkspace'))
+const ProductsPage   = lazy(() => import('./pages/ProductsPage'))
+const ScenesPage     = lazy(() => import('./pages/ScenesPage'))
+const AdminUsersPage = lazy(() => import('./pages/AdminUsersPage'))
 
 function FullScreen({ children }) {
   return <div className="min-h-screen bg-slate-50 flex items-center justify-center font-sans text-slate-500">{children}</div>
 }
+function Loader() {
+  return <FullScreen><div className="text-center"><RefreshCw className="w-8 h-8 animate-spin text-indigo-600 mx-auto mb-3"/><p className="text-sm">載入中…</p></div></FullScreen>
+}
 
 function RequireAuth() {
   const { session, profile, loading, signOut } = useAuth()
-  if (loading) return <FullScreen><div className="text-center"><RefreshCw className="w-8 h-8 animate-spin text-indigo-600 mx-auto mb-3"/><p className="text-sm">載入中…</p></div></FullScreen>
+  if (loading) return <Loader />
   if (!session) return <Navigate to="/login" replace />
   if (!profile) return (
     <FullScreen>
@@ -35,22 +41,24 @@ function RequireAuth() {
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route element={<RequireAuth />}>
-        <Route element={<Layout />}>
-          <Route path="/" element={<Navigate to="/cases" replace />} />
-          <Route path="/dashboard" element={<RoleGate allow={INTERNAL_ROLES}><DashboardPage /></RoleGate>} />
-          <Route path="/cases" element={<CasesBoardPage />} />
-          <Route path="/schedule" element={<RoleGate allow={INTERNAL_ROLES}><SchedulePage /></RoleGate>} />
-          <Route path="/cases/:id" element={<CaseDetailPage />} />
-          <Route path="/cases/:id/quote" element={<RoleGate allow={INTERNAL_ROLES}><QuoteWorkspace /></RoleGate>} />
-          <Route path="/products" element={<RoleGate allow={INTERNAL_ROLES}><ProductsPage /></RoleGate>} />
-          <Route path="/scenes" element={<RoleGate allow={INTERNAL_ROLES}><ScenesPage /></RoleGate>} />
-          <Route path="/admin/users" element={<RoleGate allow={['admin']}><AdminUsersPage /></RoleGate>} />
+    <Suspense fallback={<Loader />}>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route element={<RequireAuth />}>
+          <Route element={<Layout />}>
+            <Route path="/" element={<Navigate to="/cases" replace />} />
+            <Route path="/dashboard" element={<RoleGate allow={INTERNAL_ROLES}><DashboardPage /></RoleGate>} />
+            <Route path="/cases" element={<CasesBoardPage />} />
+            <Route path="/schedule" element={<RoleGate allow={INTERNAL_ROLES}><SchedulePage /></RoleGate>} />
+            <Route path="/cases/:id" element={<CaseDetailPage />} />
+            <Route path="/cases/:id/quote" element={<RoleGate allow={INTERNAL_ROLES}><QuoteWorkspace /></RoleGate>} />
+            <Route path="/products" element={<RoleGate allow={INTERNAL_ROLES}><ProductsPage /></RoleGate>} />
+            <Route path="/scenes" element={<RoleGate allow={INTERNAL_ROLES}><ScenesPage /></RoleGate>} />
+            <Route path="/admin/users" element={<RoleGate allow={['admin']}><AdminUsersPage /></RoleGate>} />
+          </Route>
         </Route>
-      </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
   )
 }
