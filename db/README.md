@@ -8,6 +8,7 @@
 4. **`004_phase2_rls.sql`**(第二階段)— 開放客戶/供應商/現場依「參與者」存取,並建立 `quote_items_public` 乾淨視圖(對外不含成本)。
 5. **`005_phase3.sql`**(第三階段)— 生產排程 / QC 檢查 / 交貨簽收三個模組(參與者可讀、內部可寫)。
 6. **`006_phase4_tickets.sql`**(第四階段)— 售後 / 保固工單(參與者可讀、可建立報修;內部管理狀態)。
+7. **`007_phase6_notifications.sql`**(站內通知)— `notifications` 表 + trigger:事件/留言自動通知「參與者+負責人」。
 
 > 每個檔案都可重複執行(idempotent)。
 
