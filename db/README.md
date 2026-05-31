@@ -11,6 +11,7 @@
 7. **`007_phase6_notifications.sql`**(站內通知)— `notifications` 表 + trigger:事件/留言自動通知「參與者+負責人」。
 8. **`008_phase8_feedback.sql`**(滿意度回饋)— `feedback` 表(客戶評分 1–5★ + 留言;參與者可讀、客戶可提交)。
 9. **`009_phase9_billing.sql`**(合約/請款)— `contracts` / `invoices`(財務資料,內部限定)。
+10. **`010_phase9_inventory.sql`**(庫存)— `inventory` / `stock_movements`(出入庫異動結算在庫量,內部限定)。
 
 > 每個檔案都可重複執行(idempotent)。
 
