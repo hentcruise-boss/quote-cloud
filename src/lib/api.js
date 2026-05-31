@@ -114,3 +114,9 @@ export const listAllTickets         = () => supabase.from('tickets').select('*')
 export const listAllProductionTasks = () => supabase.from('production_tasks').select('*')
 export const listRecentEvents       = (limit = 20) =>
   supabase.from('case_events').select('*').order('created_at', { ascending: false }).limit(limit)
+
+// ── 第六階段:站內通知 ──────────────────────────────────────
+export const listNotifications        = () =>
+  supabase.from('notifications').select('*').order('created_at', { ascending: false }).limit(30)
+export const markNotificationRead     = (id) => supabase.from('notifications').update({ is_read: true }).eq('id', id)
+export const markAllNotificationsRead = () => supabase.from('notifications').update({ is_read: true }).eq('is_read', false)

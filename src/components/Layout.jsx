@@ -4,6 +4,7 @@ import { Building2, LayoutDashboard, LayoutGrid, Package, LayoutTemplate, Users,
 import { useAuth } from '../contexts/AuthContext'
 import { useSync } from '../contexts/SyncContext'
 import SyncBadge from './SyncBadge'
+import NotificationBell from './NotificationBell'
 import { ROLE_MAP } from '../lib/constants'
 
 export default function Layout() {
@@ -45,6 +46,7 @@ export default function Layout() {
 
           <div className="flex items-center gap-2 sm:gap-3">
             <SyncBadge status={status}/>
+            <NotificationBell/>
             <div className="hidden sm:flex flex-col items-end leading-tight">
               <span className="text-xs font-semibold text-slate-700 max-w-[10rem] truncate">{profile?.full_name || profile?.email || '使用者'}</span>
               <span className="text-[10px] text-slate-400">{ROLE_MAP[role]?.label || '—'}</span>
