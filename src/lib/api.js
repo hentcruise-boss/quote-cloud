@@ -56,6 +56,7 @@ export const deleteAttachment = (id) => supabase.from('attachments').delete().eq
 // ── profiles ────────────────────────────────────────────────
 export const listProfiles      = () => supabase.from('profiles').select('*').order('full_name')
 export const updateProfileRole = (id, role) => supabase.from('profiles').update({ role }).eq('id', id)
+export const updateMyPrefs     = (id, dashboard_prefs) => supabase.from('profiles').update({ dashboard_prefs }).eq('id', id)
 
 // ── export history (改以 case 為範圍) ───────────────────────
 export const listHistory  = (caseId) =>

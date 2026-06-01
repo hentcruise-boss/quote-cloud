@@ -5,6 +5,7 @@ import * as api from '../lib/api'
 import { STAGES, STAGE_MAP, STATUS_MAP } from '../lib/constants'
 import { fromNow, num } from '../lib/format'
 import { downloadCSV } from '../lib/csv'
+import { useAuth } from '../contexts/AuthContext'
 
 const todayStr = () => new Date().toISOString().slice(0, 10)
 
@@ -39,11 +40,20 @@ export default function DashboardPage() {
   const [ratings, setRatings] = useState([])
   const [invoices, setInvoices] = useState([])
   const [loading, setLoading] = useState(true)
+  const { profile } = useAuth()
   const [customizing, setCustomizing] = useState(false)
-  const [prefs, setPrefs] = useState(() => { try { return JSON.parse(localStorage.getItem('dashPrefs')) || {} } catch { return {} } })
+  const [prefs, setPrefs] = useState(() => {
+    if (profile?.dashboard_prefs && typeof profile.dashboard_prefs === 'object') return profile.dashboard_prefs
+    try { return JSON.parse(localStorage.getItem('dashPrefs')) || {} } catch { return {} }
+  })
 
   const show = (k) => prefs[k] !== false
-  const toggle = (k) => setPrefs(p => { const next = { ...p, [k]: p[k] === false }; localStorage.setItem('dashPrefs', JSON.stringify(next)); return next })
+  const toggle = (k) => {
+    const next = { ...prefs, [k]: prefs[k] === false }
+    setPrefs(next)
+    localStorage.setItem('dashPrefs', JSON.stringify(next)) // 本機快取
+    if (profile?.id) api.updateMyPrefs(profile.id, next)     // 跨裝置(存帳號)
+  }
 
   useEffect(() => {
     Promise.all([
