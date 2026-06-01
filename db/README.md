@@ -17,6 +17,8 @@
 13. **`013_phase11_transfers.sql`**(倉間調撥)— `transfers` / `transfer_items` + `execute_transfer()` 原子調撥。
 14. **`014_phase11_bom.sql`**(生產 BOM 扣料)— `bom_items` + 生產任務料號/數量/領料倉,完工扣料。
 15. **`015_phase12_stock_guard.sql`**(庫存不足擋件)— 負向異動非負保護 + 出貨/BOM 原子扣庫存函式。
+16. **`016_phase12_purchasing.sql`**(採購單)— `purchase_orders` / `purchase_order_items` + `receive_po()` 收貨入庫。
+17. **`017_phase12_member_scope.sql`**(權限細分)— 員工只看/編自己負責或被指派的案件;管理員看全部。
 
 > 每個檔案都可重複執行(idempotent)。
 
