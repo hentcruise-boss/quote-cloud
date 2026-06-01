@@ -16,6 +16,7 @@
 12. **`012_phase10_billing_visibility.sql`**(客戶付款可視)— 放寬合約/請款讀取給該案「客戶」參與者(寫入仍限內部)。
 13. **`013_phase11_transfers.sql`**(倉間調撥)— `transfers` / `transfer_items` + `execute_transfer()` 原子調撥。
 14. **`014_phase11_bom.sql`**(生產 BOM 扣料)— `bom_items` + 生產任務料號/數量/領料倉,完工扣料。
+15. **`015_phase12_stock_guard.sql`**(庫存不足擋件)— 負向異動非負保護 + 出貨/BOM 原子扣庫存函式。
 
 > 每個檔案都可重複執行(idempotent)。
 
