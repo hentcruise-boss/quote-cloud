@@ -138,6 +138,13 @@ export default function CaseDetailPage() {
     await Promise.all([loadCase(), loadFeeds()])
   })
 
+  const changeOwner = (ownerId) => run(async () => {
+    setCaseItem(prev => ({ ...prev, owner_id: ownerId || null }))
+    await api.updateCase(id, { owner_id: ownerId || null })
+    await api.addEvent({ case_id: id, actor_id: profile?.id, type: 'note', summary: `負責人變更為 ${profilesMap[ownerId] || '未指定'}` })
+    await Promise.all([loadCase(), loadFeeds()])
+  })
+
   const submitComment = () => {
     if (!commentText.trim()) return
     const body = commentText.trim()
@@ -217,6 +224,15 @@ export default function CaseDetailPage() {
                   {STATUSES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
                 </select>
               </label>
+              {profile?.role === 'admin' && (
+                <label className="flex flex-col gap-1">
+                  <span className="text-[10px] text-slate-400 uppercase">負責人</span>
+                  <select value={caseItem.owner_id || ''} onChange={e => changeOwner(e.target.value)} className={selCls}>
+                    <option value="">未指定</option>
+                    {pickerProfiles.filter(p => p.role === 'admin' || p.role === 'staff').map(p => <option key={p.id} value={p.id}>{p.full_name || p.email}</option>)}
+                  </select>
+                </label>
+              )}
             </div>
           )}
         </div>
