@@ -52,15 +52,9 @@ export default function ProductionPanel({ caseId, caseItem, isInternal, onCaseCh
     if (t.material_deducted) return
     if (!t.product_sku) { alert('此生產項目未指定料號'); return }
     if (!t.warehouse_id) { alert('此生產項目未指定領料倉'); return }
-    const { data: bom } = await api.listBom(t.product_sku)
-    if (!bom || bom.length === 0) { alert('此產品尚未設定 BOM(產品頁 → BOM 物料表)'); return }
-    const movements = bom
-      .map(b => ({ sku: b.component_sku, delta: -Math.round(Number(b.qty_per) * Number(t.qty || 1)), warehouse_id: t.warehouse_id, reason: `生產領料:${t.title}`, ref_case_id: caseId, created_by: profile?.id }))
-      .filter(m => m.delta !== 0)
-    if (movements.length === 0) { alert('BOM 無可扣物料'); return }
-    for (const m of movements) await api.addStockMovement(m)
-    await api.updateProductionTask(t.id, { material_deducted: true })
-    await api.addEvent({ case_id: caseId, actor_id: profile?.id, type: 'note', summary: `生產領料(${whName(t.warehouse_id)}):${movements.length} 項物料` })
+    const { data, error } = await api.deductBomStock(t.id, profile?.id)
+    if (error) { alert(error.message || '扣料失敗(可能庫存不足或未設定 BOM)'); return }
+    await api.addEvent({ case_id: caseId, actor_id: profile?.id, type: 'note', summary: `生產領料(${whName(t.warehouse_id)}):${data ?? ''} 項物料` })
     await load()
   })
 

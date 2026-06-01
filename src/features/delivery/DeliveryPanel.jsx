@@ -22,7 +22,6 @@ export default function DeliveryPanel({ caseId, caseItem, isInternal, onCaseChan
   const { profile } = useAuth()
   const [records, setRecords] = useState([])
   const [warehouses, setWarehouses] = useState([])
-  const [productSkus, setProductSkus] = useState(new Set())
   const [form, setForm] = useState({ delivered_at: today(), recipient_name: '', note: '', warehouse_id: '' })
 
   const load = async () => { const { data } = await api.listDeliveries(caseId); setRecords(data || []) }
@@ -30,7 +29,6 @@ export default function DeliveryPanel({ caseId, caseItem, isInternal, onCaseChan
     load()
     if (isInternal) {
       api.listWarehouses().then(r => { const ws = r.data || []; setWarehouses(ws); setForm(f => ({ ...f, warehouse_id: (ws.find(w => w.is_default) || ws[0])?.id || '' })) })
-      api.listProducts().then(r => setProductSkus(new Set((r.data || []).map(p => p.sku))))
     }
     const ch = supabase.channel(`rt-delivery-${caseId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'delivery_records', filter: `case_id=eq.${caseId}` }, load).subscribe()
@@ -64,21 +62,13 @@ export default function DeliveryPanel({ caseId, caseItem, isInternal, onCaseChan
     await load()
   })
 
-  // 出貨自動扣庫存:依接受的報價,從該交貨的出貨倉扣除各品項數量(防重複)
+  // 出貨扣庫存:呼叫原子函式(庫存不足會整批擋下,不會只扣一半)
   const deductStock = (rec) => run(async () => {
     if (rec.stock_deducted) return
     if (!rec.warehouse_id) { alert('請先為此交貨指定出貨倉(刪除後重新新增並選擇倉庫)。'); return }
-    const { data: quotes } = await api.getQuotesForCase(caseId)
-    const q = (quotes || []).find(x => x.status === 'accepted') || (quotes || [])[0]
-    if (!q) { alert('找不到報價,無法扣庫存。'); return }
-    const { data: items } = await api.listQuoteItems(q.id)
-    const movements = (items || [])
-      .filter(i => i.sku && productSkus.has(i.sku) && Number(i.qty) > 0)
-      .map(i => ({ sku: i.sku, delta: -Math.abs(Number(i.qty)), warehouse_id: rec.warehouse_id, reason: `出貨:${caseItem?.code || ''}`, ref_case_id: caseId, created_by: profile?.id }))
-    if (movements.length === 0) { alert('報價沒有可扣庫存的品項(SKU 需存在於產品資料庫)。'); return }
-    for (const m of movements) await api.addStockMovement(m)
-    await api.updateDelivery(rec.id, { stock_deducted: true })
-    await api.addEvent({ case_id: caseId, actor_id: profile?.id, type: 'note', summary: `出貨扣庫存(${whName(rec.warehouse_id)}):${movements.length} 項` })
+    const { data, error } = await api.deductQuoteStock(caseId, rec.warehouse_id, rec.id, profile?.id)
+    if (error) { alert(error.message || '扣庫存失敗(可能庫存不足)'); return }
+    await api.addEvent({ case_id: caseId, actor_id: profile?.id, type: 'note', summary: `出貨扣庫存(${whName(rec.warehouse_id)}):${data ?? ''} 項` })
     await load()
   })
 

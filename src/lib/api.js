@@ -155,6 +155,12 @@ export const listBom       = (productSku) => supabase.from('bom_items').select('
 export const addBomItem    = (b) => supabase.from('bom_items').insert(b)
 export const deleteBomItem = (id) => supabase.from('bom_items').delete().eq('id', id)
 
+// ── 第十二階段:原子扣庫存(含庫存不足擋件) ───────────────
+export const deductQuoteStock = (p_case_id, p_warehouse_id, p_delivery_id, p_actor) =>
+  supabase.rpc('deduct_quote_stock', { p_case_id, p_warehouse_id, p_delivery_id, p_actor })
+export const deductBomStock = (p_task_id, p_actor) =>
+  supabase.rpc('deduct_bom_stock', { p_task_id, p_actor })
+
 // ── 第十一階段:倉間調撥 ───────────────────────────────────
 export const listTransfers   = () => supabase.from('transfers').select('*').order('created_at', { ascending: false }).limit(50)
 export const executeTransfer = (p_from, p_to, p_items, p_note, p_actor) =>
