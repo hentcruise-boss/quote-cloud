@@ -161,6 +161,12 @@ export const deductQuoteStock = (p_case_id, p_warehouse_id, p_delivery_id, p_act
 export const deductBomStock = (p_task_id, p_actor) =>
   supabase.rpc('deduct_bom_stock', { p_task_id, p_actor })
 
+// ── 第十二階段:採購單 ─────────────────────────────────────
+export const listPurchaseOrders = () => supabase.from('purchase_orders').select('*').order('created_at', { ascending: false }).limit(50)
+export const createPO    = (po) => supabase.from('purchase_orders').insert(po).select().single()
+export const addPOItems  = (items) => supabase.from('purchase_order_items').insert(items)
+export const receivePO   = (p_po_id, p_actor) => supabase.rpc('receive_po', { p_po_id, p_actor })
+
 // ── 第十一階段:倉間調撥 ───────────────────────────────────
 export const listTransfers   = () => supabase.from('transfers').select('*').order('created_at', { ascending: false }).limit(50)
 export const executeTransfer = (p_from, p_to, p_items, p_note, p_actor) =>

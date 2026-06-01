@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Boxes, RefreshCw, X, Settings, Plus, ArrowLeftRight } from 'lucide-react'
+import { Boxes, RefreshCw, X, Settings, Plus, ArrowLeftRight, ShoppingCart } from 'lucide-react'
 import { useSync } from '../contexts/SyncContext'
 import { useAuth } from '../contexts/AuthContext'
 import * as api from '../lib/api'
@@ -140,6 +140,7 @@ export default function InventoryPage() {
             {warehouses.filter(w => w.active || w.id === currentWh).map(w => <option key={w.id} value={w.id}>{whLabel(w)}</option>)}
           </select>
           <Link to="/transfers" className="inline-flex items-center gap-1 px-3 py-2 border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50"><ArrowLeftRight className="w-4 h-4"/>倉間調撥</Link>
+          <Link to="/purchases" className="inline-flex items-center gap-1 px-3 py-2 border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50"><ShoppingCart className="w-4 h-4"/>採購單</Link>
           {role === 'admin' && <button onClick={() => setManage(true)} title="倉庫管理" className="p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"><Settings className="w-4 h-4"/></button>}
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="搜尋 SKU / 名稱…" className="border border-slate-200 rounded-lg px-3 py-2 text-sm w-48 outline-none focus:ring-2 focus:ring-indigo-400 bg-white"/>
         </div>
