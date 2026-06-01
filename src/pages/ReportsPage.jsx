@@ -47,12 +47,16 @@ export default function ReportsPage() {
   const [paid, setPaid] = useState([])
   const [aq, setAq] = useState([])
   const [items, setItems] = useState([])
+  const [costHist, setCostHist] = useState([])
+  const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     (async () => {
-      const [pi, q] = await Promise.all([api.listPaidInvoices(), api.listAcceptedQuotes()])
+      const [pi, q, ch, pr] = await Promise.all([api.listPaidInvoices(), api.listAcceptedQuotes(), api.listCostHistory(), api.listProducts()])
       setPaid(pi.data || [])
+      setCostHist(ch.data || [])
+      setProducts(pr.data || [])
       const quotes = q.data || []
       setAq(quotes)
       const ids = quotes.map(x => x.id)
@@ -75,6 +79,7 @@ export default function ReportsPage() {
   const totalSales = salesByMonth.reduce((a, b) => a + b, 0)
   const totalMargin = marginByMonth.reduce((a, b) => a + b, 0)
   const avgMarginPct = totalSales > 0 ? (totalMargin / totalSales * 100) : 0
+  const prodName = Object.fromEntries(products.map(p => [p.sku, p.name]))
 
   const exportCSV = () => {
     const header = ['月份', '營收(已收款)', '成交銷售', '成交成本', '成交毛利']
@@ -113,6 +118,19 @@ export default function ReportsPage() {
           { label: '毛利', color: 'bg-amber-400', values: marginByMonth },
         ]}/>
         <Legend items={[{ label: '銷售額', color: 'bg-indigo-500' }, { label: '毛利', color: 'bg-amber-400' }]}/>
+      </div>
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+        <h2 className="text-sm font-bold text-slate-700 mb-3">近期成本異動(採購收貨更新)</h2>
+        {costHist.length === 0 && <p className="text-sm text-slate-300 text-center py-4">尚無成本異動</p>}
+        <ul className="divide-y divide-slate-50">
+          {costHist.map(h => (
+            <li key={h.id} className="py-2 flex items-center justify-between gap-3 text-sm">
+              <span className="text-slate-700 min-w-0 truncate">{prodName[h.sku] || h.sku}</span>
+              <span className="text-slate-400 text-xs flex-shrink-0">{h.note} · {fromNow(h.created_at)}</span>
+              <span className="font-mono font-bold text-slate-700 flex-shrink-0">{nt(Number(h.cost))}</span>
+            </li>
+          ))}
+        </ul>
       </div>
       <p className="text-xs text-slate-400">營收以「已收款的請款」統計;成交銷售/毛利以「已接受的報價」依建立月份統計。</p>
     </div>

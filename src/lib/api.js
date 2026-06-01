@@ -167,6 +167,9 @@ export const createPO    = (po) => supabase.from('purchase_orders').insert(po).s
 export const addPOItems  = (items) => supabase.from('purchase_order_items').insert(items)
 export const receivePO   = (p_po_id, p_actor) => supabase.rpc('receive_po', { p_po_id, p_actor })
 
+// ── 第十三階段:成本異動 ───────────────────────────────────
+export const listCostHistory = () => supabase.from('cost_history').select('*').order('created_at', { ascending: false }).limit(50)
+
 // ── 第十一階段:倉間調撥 ───────────────────────────────────
 export const listTransfers   = () => supabase.from('transfers').select('*').order('created_at', { ascending: false }).limit(50)
 export const executeTransfer = (p_from, p_to, p_items, p_note, p_actor) =>

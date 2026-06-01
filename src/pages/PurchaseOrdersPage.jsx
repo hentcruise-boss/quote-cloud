@@ -16,10 +16,11 @@ function NewPOModal({ warehouses, products, onClose, onCreate }) {
   const [lines, setLines] = useState([])
   const [sku, setSku] = useState('')
   const [qty, setQty] = useState('')
+  const [cost, setCost] = useState('')
   const [busy, setBusy] = useState(false)
   const prodName = Object.fromEntries(products.map(p => [p.sku, p.name]))
 
-  const addLine = () => { if (!sku || !Number(qty)) return; setLines(l => [...l.filter(x => x.sku !== sku), { sku, qty: Number(qty) }]); setSku(''); setQty('') }
+  const addLine = () => { if (!sku || !Number(qty)) return; setLines(l => [...l.filter(x => x.sku !== sku), { sku, qty: Number(qty), cost: Number(cost) || null }]); setSku(''); setQty(''); setCost('') }
   const submit = async () => {
     if (!warehouseId) { alert('請選擇入庫倉'); return }
     if (lines.length === 0) { alert('請至少加入一個品項'); return }
@@ -43,13 +44,14 @@ function NewPOModal({ warehouses, products, onClose, onCreate }) {
           <div className="border border-slate-100 rounded-lg p-3 space-y-2">
             <div className="flex gap-2">
               <select value={sku} onChange={e => setSku(e.target.value)} className={`${sel} flex-1`}><option value="">選擇品項</option>{products.map(p => <option key={p.sku} value={p.sku}>{p.sku} · {p.name}</option>)}</select>
-              <input type="number" min="1" value={qty} onChange={e => setQty(e.target.value)} placeholder="數量" className={`${sel} w-24`}/>
+              <input type="number" min="1" value={qty} onChange={e => setQty(e.target.value)} placeholder="數量" className={`${sel} w-20`}/>
+              <input type="number" min="0" value={cost} onChange={e => setCost(e.target.value)} placeholder="單價" className={`${sel} w-24`}/>
               <button onClick={addLine} className="px-3 py-2 bg-slate-100 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-200">加入</button>
             </div>
             {lines.length === 0 && <p className="text-xs text-slate-300 text-center py-2">尚無品項</p>}
             {lines.map(l => (
               <div key={l.sku} className="flex items-center justify-between text-sm bg-slate-50 rounded px-2 py-1">
-                <span className="text-slate-700">{prodName[l.sku] || l.sku} <span className="font-mono text-slate-400">×{l.qty}</span></span>
+                <span className="text-slate-700">{prodName[l.sku] || l.sku} <span className="font-mono text-slate-400">×{l.qty}</span>{l.cost ? <span className="font-mono text-slate-400"> @{l.cost}</span> : ''}</span>
                 <button onClick={() => setLines(ls => ls.filter(x => x.sku !== l.sku))} className="text-slate-300 hover:text-red-500"><Trash2 className="w-3.5 h-3.5"/></button>
               </div>
             ))}
@@ -87,7 +89,7 @@ export default function PurchaseOrdersPage() {
 
   const create = ({ supplier, warehouseId, note, lines }) => run(async () => {
     const { data: po } = await api.createPO({ supplier: supplier || null, warehouse_id: warehouseId, status: 'ordered', note: note || null, created_by: profile?.id })
-    if (po) await api.addPOItems(lines.map(l => ({ po_id: po.id, sku: l.sku, qty: l.qty })))
+    if (po) await api.addPOItems(lines.map(l => ({ po_id: po.id, sku: l.sku, qty: l.qty, unit_cost: l.cost })))
     setShow(false); await load()
   })
   const receive = (po) => run(async () => {
