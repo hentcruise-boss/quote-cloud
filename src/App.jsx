@@ -18,6 +18,7 @@ const ScenesPage     = lazy(() => import('./pages/ScenesPage'))
 const InventoryPage  = lazy(() => import('./pages/InventoryPage'))
 const TransfersPage  = lazy(() => import('./pages/TransfersPage'))
 const BomPage        = lazy(() => import('./pages/BomPage'))
+const ReportsPage    = lazy(() => import('./pages/ReportsPage'))
 const AdminUsersPage = lazy(() => import('./pages/AdminUsersPage'))
 
 function FullScreen({ children }) {
@@ -58,6 +59,7 @@ export default function App() {
             <Route path="/products" element={<RoleGate allow={INTERNAL_ROLES}><ProductsPage /></RoleGate>} />
             <Route path="/scenes" element={<RoleGate allow={INTERNAL_ROLES}><ScenesPage /></RoleGate>} />
             <Route path="/bom" element={<RoleGate allow={INTERNAL_ROLES}><BomPage /></RoleGate>} />
+            <Route path="/reports" element={<RoleGate allow={INTERNAL_ROLES}><ReportsPage /></RoleGate>} />
             <Route path="/inventory" element={<RoleGate allow={INTERNAL_ROLES}><InventoryPage /></RoleGate>} />
             <Route path="/transfers" element={<RoleGate allow={INTERNAL_ROLES}><TransfersPage /></RoleGate>} />
             <Route path="/admin/users" element={<RoleGate allow={['admin']}><AdminUsersPage /></RoleGate>} />

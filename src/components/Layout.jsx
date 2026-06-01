@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { Building2, LayoutDashboard, LayoutGrid, CalendarDays, Package, LayoutTemplate, Boxes, Users, LogOut, Menu, X } from 'lucide-react'
+import { Building2, LayoutDashboard, LayoutGrid, CalendarDays, Package, LayoutTemplate, Boxes, BarChart3, Users, LogOut, Menu, X } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useSync } from '../contexts/SyncContext'
 import SyncBadge from './SyncBadge'
@@ -20,6 +20,7 @@ export default function Layout() {
     { to: '/products',    label: '產品資料庫', icon: <Package className="w-4 h-4"/>,        show: isInternal },
     { to: '/scenes',      label: '場景模板',   icon: <LayoutTemplate className="w-4 h-4"/>, show: isInternal },
     { to: '/inventory',   label: '庫存',       icon: <Boxes className="w-4 h-4"/>,          show: isInternal },
+    { to: '/reports',     label: '報表',       icon: <BarChart3 className="w-4 h-4"/>,      show: isInternal },
     { to: '/admin/users', label: '使用者',     icon: <Users className="w-4 h-4"/>,          show: role === 'admin' },
   ].filter(n => n.show)
 

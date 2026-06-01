@@ -145,6 +145,11 @@ export const addStockMovement   = (m) => supabase.from('stock_movements').insert
 export const upsertReorderPoint = (sku, warehouseId, reorder_point) =>
   supabase.from('inventory').upsert({ sku, warehouse_id: warehouseId, reorder_point }, { onConflict: 'sku,warehouse_id' })
 
+// ── 第十一階段:報表 ───────────────────────────────────────
+export const listPaidInvoices        = () => supabase.from('invoices').select('amount, paid_at').eq('status', 'paid')
+export const listAcceptedQuotes      = () => supabase.from('quotes').select('id, created_at').eq('status', 'accepted')
+export const listQuoteItemsForQuotes = (ids) => supabase.from('quote_items').select('quote_id, price, cost, qty').in('quote_id', ids)
+
 // ── 第十一階段:BOM ────────────────────────────────────────
 export const listBom       = (productSku) => supabase.from('bom_items').select('*').eq('product_sku', productSku)
 export const addBomItem    = (b) => supabase.from('bom_items').insert(b)
