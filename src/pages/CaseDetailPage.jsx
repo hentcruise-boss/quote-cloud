@@ -15,7 +15,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useSync } from '../contexts/SyncContext'
 import * as api from '../lib/api'
 import { supabase } from '../supabase'
-import { STAGES, STAGE_MAP, STATUSES, ROLE_MAP } from '../lib/constants'
+import { STAGES, STAGE_MAP, STATUSES, ROLE_MAP, INVOICE_STATUS_MAP } from '../lib/constants'
 import { uploadCaseFile, removeCaseFile } from '../lib/storage'
 import { nt, num, fromNow } from '../lib/format'
 
@@ -59,6 +59,8 @@ export default function CaseDetailPage() {
   const [feedbackList, setFeedbackList] = useState([])
   const [fbRating, setFbRating] = useState(0)
   const [fbComment, setFbComment] = useState('')
+  const [custContract, setCustContract] = useState(null)
+  const [custInvoices, setCustInvoices] = useState([])
   const [loading, setLoading] = useState(true)
 
   const loadCase = async () => { const { data } = await api.getCase(id); setCaseItem(data || null) }
@@ -79,6 +81,11 @@ export default function CaseDetailPage() {
   const loadPublicQuote = async () => { const { data } = await api.listPublicQuoteItems(id); setPublicItems(data || []) }
   const refreshCase = () => Promise.all([loadCase(), loadFeeds()])
   const loadFeedback = async () => { const { data } = await api.listFeedback(id); setFeedbackList(data || []) }
+  const loadCustBilling = async () => {
+    if (profile?.role !== 'customer') return
+    const [c, v] = await Promise.all([api.listContracts(id), api.listInvoices(id)])
+    setCustContract((c.data || [])[0] || null); setCustInvoices(v.data || [])
+  }
 
   useEffect(() => {
     setLoading(true)
@@ -87,6 +94,7 @@ export default function CaseDetailPage() {
       api.listCustomers().then(r => setCustomers(r.data || [])),
       api.listPublicProfiles().then(r => setProfiles(r.data || [])),
       loadFeedback(),
+      loadCustBilling(),
     ]
     if (isInternal) {
       tasks.push(loadQuote(), loadParticipants(), api.listProfiles().then(r => setPickerProfiles(r.data || [])))
@@ -292,6 +300,32 @@ export default function CaseDetailPage() {
               <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex justify-end text-sm font-bold text-slate-700">總計:<span className="font-mono text-indigo-700 ml-2">{nt(publicTotal)}</span></div>
             </div>
           )}
+
+          {/* 客戶:付款進度(唯讀) */}
+          {profile?.role === 'customer' && (custContract || custInvoices.length > 0) && (() => {
+            const amt = Number(custContract?.amount || 0)
+            const paid = custInvoices.filter(v => v.status === 'paid').reduce((s, v) => s + Number(v.amount), 0)
+            const out = Math.max(0, amt - paid)
+            return (
+              <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+                <h2 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2"><Receipt className="w-4 h-4 text-slate-400"/>付款進度</h2>
+                <div className="grid grid-cols-3 gap-2 text-center mb-2">
+                  <div><div className="text-[11px] text-slate-400">合約</div><div className="font-mono text-xs font-bold text-slate-700">{nt(amt)}</div></div>
+                  <div><div className="text-[11px] text-slate-400">已付</div><div className="font-mono text-xs font-bold text-emerald-600">{nt(paid)}</div></div>
+                  <div><div className="text-[11px] text-slate-400">未付</div><div className="font-mono text-xs font-bold text-rose-600">{nt(out)}</div></div>
+                </div>
+                {amt > 0 && <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mb-3"><div className="h-full bg-emerald-500" style={{ width: `${Math.min(100, (paid / amt) * 100)}%` }}/></div>}
+                <div className="space-y-1.5">
+                  {custInvoices.map(v => (
+                    <div key={v.id} className="flex items-center justify-between text-xs">
+                      <span className="text-slate-600">{v.title} <span className="font-mono text-slate-400">{nt(Number(v.amount))}</span>{v.due_date ? ` · ${v.due_date}` : ''}</span>
+                      <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${INVOICE_STATUS_MAP[v.status]?.badge}`}>{INVOICE_STATUS_MAP[v.status]?.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })()}
 
           {/* 附件 (所有參與者可看/上傳) */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
