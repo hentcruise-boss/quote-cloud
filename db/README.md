@@ -14,6 +14,7 @@
 10. **`010_phase9_inventory.sql`**(庫存)— `inventory` / `stock_movements`(出入庫異動結算在庫量,內部限定)。
 11. **`011_phase10_warehouses.sql`**(多公司/多倉)— `companies` / `warehouses`,庫存改為分倉;交貨加出貨倉與扣庫存旗標。
 12. **`012_phase10_billing_visibility.sql`**(客戶付款可視)— 放寬合約/請款讀取給該案「客戶」參與者(寫入仍限內部)。
+13. **`013_phase11_transfers.sql`**(倉間調撥)— `transfers` / `transfer_items` + `execute_transfer()` 原子調撥。
 
 > 每個檔案都可重複執行(idempotent)。
 

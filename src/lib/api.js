@@ -145,6 +145,11 @@ export const addStockMovement   = (m) => supabase.from('stock_movements').insert
 export const upsertReorderPoint = (sku, warehouseId, reorder_point) =>
   supabase.from('inventory').upsert({ sku, warehouse_id: warehouseId, reorder_point }, { onConflict: 'sku,warehouse_id' })
 
+// ── 第十一階段:倉間調撥 ───────────────────────────────────
+export const listTransfers   = () => supabase.from('transfers').select('*').order('created_at', { ascending: false }).limit(50)
+export const executeTransfer = (p_from, p_to, p_items, p_note, p_actor) =>
+  supabase.rpc('execute_transfer', { p_from, p_to, p_items, p_note, p_actor })
+
 // ── 第十階段:多公司 / 多倉 ────────────────────────────────
 export const listCompanies   = () => supabase.from('companies').select('*').order('name')
 export const createCompany   = (c) => supabase.from('companies').insert(c).select().single()
