@@ -140,6 +140,14 @@ export const deleteInvoice  = (id) => supabase.from('invoices').delete().eq('id'
 export const listAllInvoices = () => supabase.from('invoices').select('amount,status')
 
 // ── 第九階段:庫存 (內部) ──────────────────────────────────
-export const listInventory      = () => supabase.from('inventory').select('*')
+export const listInventory      = (warehouseId) => supabase.from('inventory').select('*').eq('warehouse_id', warehouseId)
 export const addStockMovement   = (m) => supabase.from('stock_movements').insert(m)
-export const upsertReorderPoint = (sku, reorder_point) => supabase.from('inventory').upsert({ sku, reorder_point }, { onConflict: 'sku' })
+export const upsertReorderPoint = (sku, warehouseId, reorder_point) =>
+  supabase.from('inventory').upsert({ sku, warehouse_id: warehouseId, reorder_point }, { onConflict: 'sku,warehouse_id' })
+
+// ── 第十階段:多公司 / 多倉 ────────────────────────────────
+export const listCompanies   = () => supabase.from('companies').select('*').order('name')
+export const createCompany   = (c) => supabase.from('companies').insert(c).select().single()
+export const listWarehouses  = () => supabase.from('warehouses').select('*').order('name')
+export const createWarehouse = (w) => supabase.from('warehouses').insert(w).select().single()
+export const updateWarehouse = (id, patch) => supabase.from('warehouses').update(patch).eq('id', id)
