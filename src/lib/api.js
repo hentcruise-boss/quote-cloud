@@ -144,6 +144,8 @@ export const listInventory      = (warehouseId) => supabase.from('inventory').se
 export const addStockMovement   = (m) => supabase.from('stock_movements').insert(m)
 export const upsertReorderPoint = (sku, warehouseId, reorder_point) =>
   supabase.from('inventory').upsert({ sku, warehouse_id: warehouseId, reorder_point }, { onConflict: 'sku,warehouse_id' })
+export const listStockMovements = (sku, warehouseId) =>
+  supabase.from('stock_movements').select('*').eq('sku', sku).eq('warehouse_id', warehouseId).order('created_at', { ascending: false }).limit(50)
 
 // ── 第十一階段:報表 ───────────────────────────────────────
 export const listPaidInvoices        = () => supabase.from('invoices').select('amount, paid_at').eq('status', 'paid')

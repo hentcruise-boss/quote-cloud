@@ -10,7 +10,8 @@ function AdjustModal({ product, warehouseName, onClose, onApply }) {
   const [sign, setSign] = useState(1)
   const [qty, setQty] = useState('')
   const [reason, setReason] = useState('')
-  const apply = () => { const d = (Number(qty) || 0) * sign; if (!d) return; onApply(d, reason) }
+  const [batch, setBatch] = useState('')
+  const apply = () => { const d = (Number(qty) || 0) * sign; if (!d) return; onApply(d, reason, batch) }
   const btn = (s, label, cls) => (
     <button onClick={() => setSign(s)} className={`flex-1 py-2 rounded-lg text-sm font-semibold border ${sign === s ? cls : 'border-slate-200 text-slate-500'}`}>{label}</button>
   )
@@ -29,6 +30,7 @@ function AdjustModal({ product, warehouseName, onClose, onApply }) {
           </div>
           <label className="block text-xs text-slate-400">數量<input type="number" min="0" value={qty} onChange={e => setQty(e.target.value)} className="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400"/></label>
           <label className="block text-xs text-slate-400">原因 / 備註<input value={reason} onChange={e => setReason(e.target.value)} placeholder="進貨 / 出貨 / 盤點 / 調撥…" className="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400"/></label>
+          <label className="block text-xs text-slate-400">批號 / 序號(可選)<input value={batch} onChange={e => setBatch(e.target.value)} placeholder="例:LOT-2026-001 / SN…" className="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400"/></label>
         </div>
         <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3">
           <button onClick={onClose} className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50">取消</button>
@@ -71,6 +73,32 @@ function ManageModal({ warehouses, companies, onClose, onAdd, onToggle }) {
   )
 }
 
+function MovementsModal({ product, warehouseName, moves, onClose }) {
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
+        <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+          <h3 className="font-bold text-slate-800">異動明細 — {product.name} <span className="text-xs font-normal text-slate-400">({warehouseName})</span></h3>
+          <button onClick={onClose}><X className="w-5 h-5 text-slate-400"/></button>
+        </div>
+        <div className="max-h-96 overflow-y-auto divide-y divide-slate-50">
+          {moves.length === 0 && <div className="py-8 text-center text-slate-300 text-sm">無異動紀錄</div>}
+          {moves.map(m => (
+            <div key={m.id} className="px-6 py-2.5 flex items-center justify-between text-sm">
+              <div className="min-w-0">
+                <span className="text-slate-600">{m.reason || '異動'}</span>
+                {m.batch_no && <span className="ml-2 text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full">批號 {m.batch_no}</span>}
+                <div className="text-[11px] text-slate-400">{new Date(m.created_at).toLocaleString('zh-TW')}</div>
+              </div>
+              <span className={`font-mono font-bold ${m.delta < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>{m.delta > 0 ? '+' : ''}{m.delta}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function InventoryPage() {
   const { run } = useSync()
   const { profile, role } = useAuth()
@@ -82,6 +110,8 @@ export default function InventoryPage() {
   const [search, setSearch] = useState('')
   const [adjust, setAdjust] = useState(null)
   const [manage, setManage] = useState(false)
+  const [detail, setDetail] = useState(null)
+  const [moves, setMoves] = useState([])
   const [loading, setLoading] = useState(true)
 
   const loadWarehouses = async () => { const { data } = await api.listWarehouses(); setWarehouses(data || []); return data || [] }
@@ -112,10 +142,12 @@ export default function InventoryPage() {
     .map(p => ({ sku: p.sku, name: p.name, on_hand: invMap[p.sku]?.on_hand ?? 0, reorder_point: invMap[p.sku]?.reorder_point ?? 0 }))
     .filter(p => !search || p.sku.toLowerCase().includes(search.toLowerCase()) || p.name.includes(search))
 
-  const applyAdjust = (delta, reason) => run(async () => {
-    await api.addStockMovement({ sku: adjust.sku, delta, reason: reason || null, warehouse_id: currentWh, created_by: profile?.id })
+  const applyAdjust = (delta, reason, batch) => run(async () => {
+    const { error } = await api.addStockMovement({ sku: adjust.sku, delta, reason: reason || null, batch_no: batch || null, warehouse_id: currentWh, created_by: profile?.id })
+    if (error) { alert(error.message || '異動失敗(可能庫存不足)'); return }
     setAdjust(null); await loadInv(currentWh)
   })
+  const openDetail = async (p) => { const { data } = await api.listStockMovements(p.sku, currentWh); setMoves(data || []); setDetail(p) }
   const setReorder = (sku, val) => run(async () => { await api.upsertReorderPoint(sku, currentWh, Number(val) || 0); await loadInv(currentWh) })
   const addWarehouse = (name, company_id) => run(async () => { await api.createWarehouse({ name, company_id }); await loadWarehouses() })
   const toggleWarehouse = (w) => run(async () => { await api.updateWarehouse(w.id, { active: !w.active }); await loadWarehouses() })
@@ -132,6 +164,7 @@ export default function InventoryPage() {
     <div className="space-y-4">
       {adjust && <AdjustModal product={adjust} warehouseName={currentWhName} onClose={() => setAdjust(null)} onApply={applyAdjust}/>}
       {manage && <ManageModal warehouses={warehouses} companies={companies} onClose={() => setManage(false)} onAdd={addWarehouse} onToggle={toggleWarehouse}/>}
+      {detail && <MovementsModal product={detail} warehouseName={currentWhName} moves={moves} onClose={() => setDetail(null)}/>}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-lg font-bold text-slate-800 flex items-center gap-2"><Boxes className="w-5 h-5 text-indigo-500"/>庫存管理</h1>
@@ -169,7 +202,10 @@ export default function InventoryPage() {
                       className="w-16 text-right border border-slate-200 rounded px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-indigo-400"/>
                   </td>
                   <td className="px-4 py-3 text-center"><span className={`text-xs font-bold px-2 py-0.5 rounded-full ${st.cls}`}>{st.label}</span></td>
-                  <td className="px-4 py-3 text-right"><button onClick={() => setAdjust(p)} className="px-2.5 py-1 border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50">調整</button></td>
+                  <td className="px-4 py-3 text-right whitespace-nowrap">
+                    <button onClick={() => openDetail(p)} className="px-2.5 py-1 text-xs font-semibold text-slate-500 hover:text-indigo-600">明細</button>
+                    <button onClick={() => setAdjust(p)} className="ml-1 px-2.5 py-1 border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50">調整</button>
+                  </td>
                 </tr>
               )
             })}
