@@ -8,6 +8,7 @@ import { INTERNAL_ROLES } from './lib/constants'
 
 // 程式碼分割:各頁面按需載入,縮小首屏 bundle
 const LoginPage      = lazy(() => import('./pages/LoginPage'))
+const HomePage       = lazy(() => import('./pages/HomePage'))
 const DashboardPage  = lazy(() => import('./pages/DashboardPage'))
 const CasesBoardPage = lazy(() => import('./pages/CasesBoardPage'))
 const SchedulePage   = lazy(() => import('./pages/SchedulePage'))
@@ -43,6 +44,12 @@ function RequireAuth() {
   return <Outlet />
 }
 
+// 依角色決定首頁:內部→看板;外部→專屬首頁
+function RoleHome() {
+  const { isInternal } = useAuth()
+  return <Navigate to={isInternal ? '/cases' : '/home'} replace />
+}
+
 export default function App() {
   return (
     <Suspense fallback={<Loader />}>
@@ -50,7 +57,8 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route element={<RequireAuth />}>
           <Route element={<Layout />}>
-            <Route path="/" element={<Navigate to="/cases" replace />} />
+            <Route path="/" element={<RoleHome />} />
+            <Route path="/home" element={<HomePage />} />
             <Route path="/dashboard" element={<RoleGate allow={INTERNAL_ROLES}><DashboardPage /></RoleGate>} />
             <Route path="/cases" element={<CasesBoardPage />} />
             <Route path="/schedule" element={<RoleGate allow={INTERNAL_ROLES}><SchedulePage /></RoleGate>} />
