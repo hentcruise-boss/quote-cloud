@@ -19,6 +19,8 @@
 15. **`015_phase12_stock_guard.sql`**(庫存不足擋件)— 負向異動非負保護 + 出貨/BOM 原子扣庫存函式。
 16. **`016_phase12_purchasing.sql`**(採購單)— `purchase_orders` / `purchase_order_items` + `receive_po()` 收貨入庫。
 17. **`017_phase12_member_scope.sql`**(權限細分)— 員工只看/編自己負責或被指派的案件;管理員看全部。
+18. **`018_phase13_cost.sql`**(採購成本)— `cost_history`;收貨以採購單價更新產品成本並記錄異動。
+19. **`019_phase13_batch.sql`**(庫存批號/序號)— 異動/採購項加 `batch_no`,收貨帶批號。
 
 > 每個檔案都可重複執行(idempotent)。
 
