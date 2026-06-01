@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { BarChart3, RefreshCw, TrendingUp, DollarSign, Percent } from 'lucide-react'
+import { BarChart3, RefreshCw, TrendingUp, DollarSign, Percent, Download, Printer } from 'lucide-react'
 import * as api from '../lib/api'
 import { nt, num } from '../lib/format'
+import { downloadCSV } from '../lib/csv'
 
 const monthsBack = (n) => {
   const out = []; const now = new Date()
@@ -75,11 +76,23 @@ export default function ReportsPage() {
   const totalMargin = marginByMonth.reduce((a, b) => a + b, 0)
   const avgMarginPct = totalSales > 0 ? (totalMargin / totalSales * 100) : 0
 
+  const exportCSV = () => {
+    const header = ['月份', '營收(已收款)', '成交銷售', '成交成本', '成交毛利']
+    const rows = months.map((m, i) => [m, revByMonth[i], salesByMonth[i], costByMonth[i], marginByMonth[i]])
+    downloadCSV(`報表_${months[0]}_至_${months[months.length - 1]}.csv`, [header, ...rows])
+  }
+
   if (loading) return <div className="py-20 text-center text-slate-400"><RefreshCw className="w-7 h-7 animate-spin mx-auto mb-2 text-indigo-500"/>載入中…</div>
 
   return (
     <div className="space-y-5">
-      <h1 className="text-lg font-bold text-slate-800 flex items-center gap-2"><BarChart3 className="w-5 h-5 text-indigo-500"/>報表</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-lg font-bold text-slate-800 flex items-center gap-2"><BarChart3 className="w-5 h-5 text-indigo-500"/>報表</h1>
+        <div className="flex items-center gap-2 no-print">
+          <button onClick={exportCSV} className="inline-flex items-center gap-1.5 px-3 py-2 border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-white"><Download className="w-4 h-4"/>匯出 CSV</button>
+          <button onClick={() => window.print()} className="inline-flex items-center gap-1.5 px-3 py-2 border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-white"><Printer className="w-4 h-4"/>列印 / PDF</button>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard icon={<DollarSign className="w-5 h-5"/>} label={`${thisYear} 年度已收`} value={nt(revYTD)} tone="emerald"/>
