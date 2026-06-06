@@ -2,6 +2,7 @@
 
 在 [Supabase SQL Editor](https://supabase.com/dashboard) 依序貼上並執行:
 
+0. **`000_legacy_base.sql`** — 原始報價工具基礎表(`products / projects / quote_items / scenes / export_history`)。全新專案請先跑;若出現 `relation "quote_items" does not exist` 就是少了這步。
 1. **`001_schema.sql`** — 建立 `profiles / customers / cases / quotes / case_events / comments / attachments / case_participants`,並為 `quote_items` 加上 `quote_id`、`export_history` 加上 `case_id`。
 2. **`002_backfill.sql`** — 把既有 `projects` 搬遷成 `cases`(每案一筆 `quote`),既有報價清單改掛 `quote_id`。原 `projects` 保留不刪(回滾用)。
 3. **`003_rls.sql`** — 開啟 RLS 與 Storage,**關閉匿名外網**,資料自此需登入存取。

@@ -19,6 +19,7 @@
 在 [Supabase Dashboard](https://supabase.com/dashboard) → 你的專案 → **SQL Editor**,
 把 `db/` 資料夾裡的檔案**依序**貼上並 Run(每個檔都可重複執行,安全):
 
+- [ ] `000_legacy_base.sql` ← **原始報價工具基礎表;若出現 `relation "quote_items" does not exist` 就是少了這步,先跑它**
 - [ ] `001_schema.sql`
 - [ ] `002_backfill.sql`(把舊的報價專案搬成「案件」)
 - [ ] `003_rls.sql` ← **執行後舊的免登入頁面會停用,改為需登入**
