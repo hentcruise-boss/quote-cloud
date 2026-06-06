@@ -41,10 +41,9 @@ function AdjustModal({ product, warehouseName, onClose, onApply }) {
   )
 }
 
-function ManageModal({ warehouses, companies, onClose, onAdd, onToggle }) {
+function ManageModal({ warehouses, companies, onClose, onAdd, onToggle, onSetCompany }) {
   const [name, setName] = useState('')
   const [companyId, setCompanyId] = useState('')
-  const companyName = Object.fromEntries(companies.map(c => [c.id, c.name]))
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
@@ -54,9 +53,15 @@ function ManageModal({ warehouses, companies, onClose, onAdd, onToggle }) {
         </div>
         <div className="p-6 space-y-2 max-h-72 overflow-y-auto">
           {warehouses.map(w => (
-            <div key={w.id} className="flex items-center justify-between text-sm border-b border-slate-50 pb-2">
-              <span className="text-slate-700">{w.name}<span className="ml-2 text-xs text-slate-400">{companyName[w.company_id] || '未指定公司'}</span>{w.is_default && <span className="ml-2 text-[10px] bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full">預設</span>}</span>
-              <button onClick={() => onToggle(w)} className={`text-xs ${w.active ? 'text-emerald-600' : 'text-slate-400'}`}>{w.active ? '啟用中' : '已停用'}</button>
+            <div key={w.id} className="flex items-center justify-between gap-2 text-sm border-b border-slate-50 pb-2">
+              <span className="text-slate-700 flex-shrink-0">{w.name}{w.is_default && <span className="ml-1 text-[10px] bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full">預設</span>}</span>
+              <div className="flex items-center gap-2">
+                <select value={w.company_id || ''} onChange={e => onSetCompany(w, e.target.value)} className="border border-slate-200 rounded px-2 py-1 text-xs bg-white outline-none focus:ring-2 focus:ring-indigo-400">
+                  <option value="">未指定公司</option>
+                  {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+                <button onClick={() => onToggle(w)} className={`text-xs ${w.active ? 'text-emerald-600' : 'text-slate-400'}`}>{w.active ? '啟用中' : '已停用'}</button>
+              </div>
             </div>
           ))}
         </div>
@@ -151,6 +156,7 @@ export default function InventoryPage() {
   const setReorder = (sku, val) => run(async () => { await api.upsertReorderPoint(sku, currentWh, Number(val) || 0); await loadInv(currentWh) })
   const addWarehouse = (name, company_id) => run(async () => { await api.createWarehouse({ name, company_id }); await loadWarehouses() })
   const toggleWarehouse = (w) => run(async () => { await api.updateWarehouse(w.id, { active: !w.active }); await loadWarehouses() })
+  const setWhCompany = (w, cid) => run(async () => { await api.updateWarehouse(w.id, { company_id: cid || null }); await loadWarehouses() })
 
   const statusOf = (p) => {
     if (p.on_hand <= 0) return { label: '缺貨', cls: 'bg-rose-50 text-rose-700' }
@@ -163,7 +169,7 @@ export default function InventoryPage() {
   return (
     <div className="space-y-4">
       {adjust && <AdjustModal product={adjust} warehouseName={currentWhName} onClose={() => setAdjust(null)} onApply={applyAdjust}/>}
-      {manage && <ManageModal warehouses={warehouses} companies={companies} onClose={() => setManage(false)} onAdd={addWarehouse} onToggle={toggleWarehouse}/>}
+      {manage && <ManageModal warehouses={warehouses} companies={companies} onClose={() => setManage(false)} onAdd={addWarehouse} onToggle={toggleWarehouse} onSetCompany={setWhCompany}/>}
       {detail && <MovementsModal product={detail} warehouseName={currentWhName} moves={moves} onClose={() => setDetail(null)}/>}
 
       <div className="flex flex-wrap items-center justify-between gap-3">

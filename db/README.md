@@ -23,6 +23,7 @@
 18. **`018_phase13_cost.sql`**(採購成本)— `cost_history`;收貨以採購單價更新產品成本並記錄異動。
 19. **`019_phase13_batch.sql`**(庫存批號/序號)— 異動/採購項加 `batch_no`,收貨帶批號。
 20. **`020_phase14_dashboard_prefs.sql`**(跨裝置儀表板偏好)— `profiles.dashboard_prefs`,自訂隨帳號跨裝置。
+21. **`021_phase14_signup_default.sql`**(註冊安全預設)— 自助註冊預設為最低權限「客戶」,由管理員再升級。
 
 > 每個檔案都可重複執行(idempotent)。
 

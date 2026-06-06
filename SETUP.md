@@ -40,6 +40,7 @@
 - [ ] `018_phase13_cost.sql`
 - [ ] `019_phase13_batch.sql`
 - [ ] `020_phase14_dashboard_prefs.sql`
+- [ ] `021_phase14_signup_default.sql`(自助註冊預設為「客戶」最低權限,較安全)
 
 > 產品/場景資料若是全新專案才需要跑 `seed.sql`;你現有專案已有資料,**不用**再跑。
 
