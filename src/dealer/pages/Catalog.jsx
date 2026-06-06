@@ -1,10 +1,30 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, Heart, ChevronRight } from 'lucide-react'
+import { Search, Heart, ChevronRight, X } from 'lucide-react'
 import { useAuth } from '../../lib/auth'
 import { fetchProducts, fetchOverrides, fetchFavorites, toggleFavorite } from '../../lib/data'
 import { tierUnitPrice } from '../../lib/pricing'
 import { nt, addTax } from '../../lib/format'
+import { LEAD_TIME, leadTimeBadgeClass } from '../../lib/filters'
+
+function ChipRow({ label, value, options, onChange }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="w-8 flex-shrink-0 text-xs text-stone-400">{label}</span>
+      <div className="-mx-1 flex flex-1 gap-1.5 overflow-x-auto px-1 pb-0.5">
+        {options.map(o => {
+          const active = value === o.key
+          return (
+            <button key={o.key} onClick={() => onChange(o.key)}
+              className={`whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition ${active ? 'bg-teal-700 text-white' : 'bg-white text-stone-500 border border-stone-200'}`}>
+              {o.label}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
 
 export default function Catalog() {
   const { dealer, tier } = useAuth()
@@ -13,7 +33,9 @@ export default function Catalog() {
   const [favs, setFavs] = useState([])
   const [loading, setLoading] = useState(true)
   const [q, setQ] = useState('')
-  const [cat, setCat] = useState('全部')
+  const [lead, setLead] = useState('all')   // 'all' | 'stock' | 'fast' | 'normal'
+  const [scene, setScene] = useState('all') // 'all' | <scene>
+  const [cat, setCat] = useState('all')     // 'all' | <category>
   const [withTax, setWithTax] = useState(false)
 
   useEffect(() => {
@@ -24,14 +46,36 @@ export default function Catalog() {
     })()
   }, [dealer?.id])
 
-  const categories = useMemo(() => ['全部', ...Array.from(new Set(products.map(p => p.category).filter(Boolean)))], [products])
+  // 篩選選項（從實際資料推導，只顯示有內容的）
+  const leadOptions = useMemo(() => [
+    { key: 'all', label: '全部' },
+    ...LEAD_TIME.filter(lt => products.some(p => p.lead_time_type === lt.key))
+      .map(lt => ({ key: lt.key, label: lt.label })),
+  ], [products])
 
-  const filtered = products.filter(p => {
-    if (cat !== '全部' && p.category !== cat) return false
+  const sceneOptions = useMemo(() => [
+    { key: 'all', label: '全部' },
+    ...Array.from(new Set(products.flatMap(p => p.scenes || []))).sort()
+      .map(s => ({ key: s, label: s })),
+  ], [products])
+
+  const catOptions = useMemo(() => [
+    { key: 'all', label: '全部' },
+    ...Array.from(new Set(products.map(p => p.category).filter(Boolean))).sort()
+      .map(c => ({ key: c, label: c })),
+  ], [products])
+
+  const filtered = useMemo(() => products.filter(p => {
+    if (lead !== 'all' && p.lead_time_type !== lead) return false
+    if (scene !== 'all' && !(p.scenes || []).includes(scene)) return false
+    if (cat !== 'all' && p.category !== cat) return false
     if (!q) return true
     const s = q.toLowerCase()
     return p.name.toLowerCase().includes(s) || p.sku.toLowerCase().includes(s) || (p.series || '').toLowerCase().includes(s)
-  })
+  }), [products, lead, scene, cat, q])
+
+  const filterActive = lead !== 'all' || scene !== 'all' || cat !== 'all'
+  const clearFilters = () => { setLead('all'); setScene('all'); setCat('all') }
 
   const onFav = async (sku, on) => {
     setFavs(prev => on ? [...prev, sku] : prev.filter(s => s !== sku))
@@ -60,14 +104,24 @@ export default function Catalog() {
           className="w-full rounded-xl border border-stone-200 bg-white py-2.5 pl-9 pr-3 text-sm outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-100" />
       </div>
 
-      <div className="-mx-1 flex gap-2 overflow-x-auto pb-1">
-        {categories.map(c => (
-          <button key={c} onClick={() => setCat(c)}
-            className={`whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-medium transition ${cat === c ? 'bg-teal-700 text-white' : 'bg-white text-stone-500 border border-stone-200'}`}>
-            {c}
-          </button>
-        ))}
+      {/* 篩選列 */}
+      <div className="space-y-1.5">
+        <ChipRow label="交期" value={lead}  options={leadOptions}  onChange={setLead} />
+        <ChipRow label="場景" value={scene} options={sceneOptions} onChange={setScene} />
+        <ChipRow label="類型" value={cat}   options={catOptions}   onChange={setCat} />
       </div>
+
+      {/* 結果列：顯示筆數 + 清除 */}
+      {!loading && (
+        <div className="flex items-center justify-between text-xs text-stone-400">
+          <span>{filtered.length} 筆</span>
+          {filterActive && (
+            <button onClick={clearFilters} className="flex items-center gap-1 text-teal-700">
+              <X className="h-3 w-3" />清除篩選
+            </button>
+          )}
+        </div>
+      )}
 
       {loading ? (
         <div className="py-20 text-center text-sm text-stone-400">載入中…</div>
@@ -77,8 +131,14 @@ export default function Catalog() {
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {filtered.map(p => {
             const fav = favs.includes(p.sku)
+            const lt = LEAD_TIME.find(x => x.key === p.lead_time_type)
             return (
               <div key={p.sku} className="group relative overflow-hidden rounded-2xl border border-stone-200 bg-white">
+                {lt && (
+                  <span className={`absolute left-2 top-2 z-10 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${leadTimeBadgeClass(p.lead_time_type)}`}>
+                    {lt.label}
+                  </span>
+                )}
                 <button onClick={() => onFav(p.sku, !fav)}
                   className="absolute right-2 top-2 z-10 rounded-full bg-white/85 p-1.5 backdrop-blur">
                   <Heart className={`h-4 w-4 ${fav ? 'fill-rose-500 text-rose-500' : 'text-stone-400'}`} />

@@ -2,8 +2,9 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Plus, X, Trash2, Eye, EyeOff, Upload, Loader2, Image as ImageIcon } from 'lucide-react'
 import { supabase } from '../../supabase'
 import { nt } from '../../lib/format'
+import { LEAD_TIME, SCENES_PRESET } from '../../lib/filters'
 
-const EMPTY = { sku: '', name: '', series: '', category: '', description: '', spec: '', material: '', base_price: 0, image_url: '', qty_tiers: [], is_active: true, sort_order: 0 }
+const EMPTY = { sku: '', name: '', series: '', category: '', description: '', spec: '', material: '', base_price: 0, image_url: '', qty_tiers: [], is_active: true, sort_order: 0, lead_time_type: 'normal', scenes: [] }
 
 // 把檔案上傳到 product-images bucket，回傳 public URL
 async function uploadProductImage(file, sku) {
@@ -63,7 +64,9 @@ function ImageUploader({ value, onChange, sku }) {
 
 function ProductModal({ product, onClose, onSaved }) {
   const isNew = !product
-  const [f, setF] = useState(product ? { ...product, qty_tiers: product.qty_tiers || [] } : { ...EMPTY })
+  const [f, setF] = useState(product
+    ? { ...product, qty_tiers: product.qty_tiers || [], scenes: product.scenes || [], lead_time_type: product.lead_time_type || 'normal' }
+    : { ...EMPTY })
   const [options, setOptions] = useState([])
   const [busy, setBusy] = useState(false)
   const set = (k, v) => setF(s => ({ ...s, [k]: v }))
@@ -119,6 +122,38 @@ function ProductModal({ product, onClose, onSaved }) {
             <L label="上架"><label className="flex h-[38px] items-center gap-2 text-sm"><input type="checkbox" checked={f.is_active} onChange={e => set('is_active', e.target.checked)} />{f.is_active ? '上架中' : '已下架'}</label></L>
           </div>
           <ImageUploader value={f.image_url} onChange={v => set('image_url', v)} sku={f.sku} />
+
+          {/* 交期 */}
+          <L label="交期">
+            <div className="flex flex-wrap gap-2">
+              {LEAD_TIME.map(lt => {
+                const active = f.lead_time_type === lt.key
+                return (
+                  <button key={lt.key} type="button" onClick={() => set('lead_time_type', lt.key)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-medium border transition ${active ? 'border-teal-600 bg-teal-50 text-teal-800' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                    {lt.label}
+                  </button>
+                )
+              })}
+            </div>
+          </L>
+
+          {/* 場景（多選） */}
+          <L label="適用場景（可複選）">
+            <div className="flex flex-wrap gap-2">
+              {SCENES_PRESET.map(s => {
+                const active = (f.scenes || []).includes(s)
+                return (
+                  <button key={s} type="button"
+                    onClick={() => set('scenes', active ? f.scenes.filter(x => x !== s) : [...(f.scenes || []), s])}
+                    className={`rounded-full px-3 py-1.5 text-xs font-medium border transition ${active ? 'border-teal-600 bg-teal-50 text-teal-800' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                    {s}
+                  </button>
+                )
+              })}
+            </div>
+            <div className="mt-1 text-[10px] text-slate-400">已選：{(f.scenes || []).join('、') || '—'}</div>
+          </L>
 
           {/* 數量階梯 */}
           <div className="rounded-lg border border-slate-200 p-3">

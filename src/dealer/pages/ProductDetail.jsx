@@ -6,6 +6,7 @@ import { useCart } from '../../lib/cart'
 import { fetchProduct, fetchOptions, fetchOverrides, fetchFavorites, toggleFavorite } from '../../lib/data'
 import { tierUnitPrice, optionsDelta, qtyRate, unitPriceWithOptions, finalUnitPrice } from '../../lib/pricing'
 import { nt, addTax } from '../../lib/format'
+import { LEAD_TIME, leadTimeBadgeClass } from '../../lib/filters'
 
 export default function ProductDetail() {
   const { sku } = useParams()
@@ -93,6 +94,15 @@ export default function ProductDetail() {
             <div>
               <div className="text-xs text-stone-400">{product.series || product.category} · {product.sku}</div>
               <h1 className="mt-0.5 text-xl font-bold text-stone-800">{product.name}</h1>
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                {(() => {
+                  const lt = LEAD_TIME.find(x => x.key === product.lead_time_type)
+                  return lt ? <span className={`rounded-md border px-2 py-0.5 text-[11px] font-semibold ${leadTimeBadgeClass(product.lead_time_type)}`}>{lt.label}</span> : null
+                })()}
+                {(product.scenes || []).map(s => (
+                  <span key={s} className="rounded-md border border-stone-200 bg-stone-50 px-2 py-0.5 text-[11px] text-stone-500">{s}</span>
+                ))}
+              </div>
             </div>
             <button onClick={onFav} className="rounded-full border border-stone-200 p-2">
               <Heart className={`h-5 w-5 ${fav ? 'fill-rose-500 text-rose-500' : 'text-stone-400'}`} />
