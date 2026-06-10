@@ -41,6 +41,7 @@
 - [ ] `019_phase13_batch.sql`
 - [ ] `020_phase14_dashboard_prefs.sql`
 - [ ] `021_phase14_signup_default.sql`(自助註冊預設為「客戶」最低權限,較安全)
+- [ ] `022_security_protect_role.sql` ← **安全修補:防止使用者自助升級為管理員。務必執行,且在開放外部帳號前**
 
 > 產品/場景資料若是全新專案才需要跑 `seed.sql`;你現有專案已有資料,**不用**再跑。
 
