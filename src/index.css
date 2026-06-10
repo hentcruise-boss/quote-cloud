@@ -1,3 +1,10 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* 列印 / 另存 PDF:隱藏導覽與操作按鈕,只留報表內容 */
+@media print {
+  header { display: none !important; }
+  .no-print { display: none !important; }
+  main { padding: 0 !important; max-width: none !important; }
+}
