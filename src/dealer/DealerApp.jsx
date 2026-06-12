@@ -16,6 +16,7 @@ import Inventory from './pages/Inventory'
 import Billing from './pages/Billing'
 import StatementDetail from './pages/StatementDetail'
 import Custom from './pages/Custom'
+import Services from './pages/Services'
 
 // 已登入、但找不到對應經銷商資料（帳號尚未開通）
 function NotProvisioned() {
@@ -58,6 +59,7 @@ export default function DealerApp() {
           <Route path="billing" element={<Billing />} />
           <Route path="billing/:id" element={<StatementDetail />} />
           <Route path="custom" element={<Custom />} />
+          <Route path="services" element={<Services />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </DealerLayout>

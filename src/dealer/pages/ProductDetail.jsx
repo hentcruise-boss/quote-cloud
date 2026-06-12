@@ -4,7 +4,7 @@ import { ArrowLeft, Heart, Minus, Plus, Check, ShoppingCart } from 'lucide-react
 import { useAuth } from '../../lib/auth'
 import { useCart } from '../../lib/cart'
 import { fetchProduct, fetchOptions, fetchOverrides, fetchFavorites, toggleFavorite } from '../../lib/data'
-import { tierUnitPrice, optionsDelta, qtyRate, unitPriceWithOptions, finalUnitPrice } from '../../lib/pricing'
+import { tierUnitPrice, optionsDelta, qtyRate, unitPriceWithOptions, finalUnitPrice, saleActive } from '../../lib/pricing'
 import { nt, addTax } from '../../lib/format'
 import { LEAD_TIME, leadTimeBadgeClass } from '../../lib/filters'
 import { Boxes } from 'lucide-react'
@@ -96,6 +96,7 @@ export default function ProductDetail() {
               <div className="text-xs text-stone-400">{product.series || product.category} · {product.sku}</div>
               <h1 className="mt-0.5 text-xl font-bold text-stone-800">{product.name}</h1>
               <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                {saleActive(product) && <span className="rounded-md bg-rose-500 px-2 py-0.5 text-[11px] font-bold text-white">促銷中{product.sale_until ? ` · 至 ${new Date(product.sale_until).getMonth() + 1}/${new Date(product.sale_until).getDate()}` : ''}</span>}
                 {(() => {
                   const lt = LEAD_TIME.find(x => x.key === product.lead_time_type)
                   return lt ? <span className={`rounded-md border px-2 py-0.5 text-[11px] font-semibold ${leadTimeBadgeClass(product.lead_time_type)}`}>{lt.label}</span> : null
@@ -183,6 +184,9 @@ export default function ProductDetail() {
         </div>
         <div className="mt-1 text-xs text-stone-400">
           基礎 {nt(baseUnit)}{optAdd !== 0 && ` ＋選配 ${nt(optAdd)}`}（未稅）
+          {saleActive(product) && override == null && (
+            <span className="ml-1.5 text-rose-500">促銷前 <s>{nt(Math.round(Number(product.base_price) * (tier ? Number(tier.price_rate) : 1)))}</s></span>
+          )}
         </div>
 
         <div className="mt-4 flex items-center justify-between">

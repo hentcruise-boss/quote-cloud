@@ -1,12 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { ArrowLeft, Check, Truck, Banknote, Copy, Upload, FileCheck2, Loader2 } from 'lucide-react'
-import { fetchOrder, uploadPaymentProof, paymentProofSignedUrl } from '../../lib/data'
+import { ArrowLeft, Check, Truck, Banknote, Copy, Upload, FileCheck2, Loader2, RotateCcw } from 'lucide-react'
+import { fetchOrder, uploadPaymentProof, paymentProofSignedUrl, fetchProducts, fetchOverrides } from '../../lib/data'
 import { nt, fmtDate, fmtDateTime } from '../../lib/format'
 import { flowFor, statusIndexInFlow, statusLabel } from '../../lib/status'
 import { orderModeLabel, deliveryLabel } from '../../lib/filters'
+import { tierUnitPrice, optionsDelta } from '../../lib/pricing'
 import { bankAccount } from '../../lib/bankInfo'
 import { useAuth } from '../../lib/auth'
+import { useCart } from '../../lib/cart'
 
 function BankAccountRows({ account, order, copy }) {
   if (account.type === 'OVERSEAS') {
@@ -119,11 +121,38 @@ const Row = ({ label, value, mono, copy, hint }) => (
 export default function OrderDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { dealer, tier } = useAuth()
+  const { addItem } = useCart()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [reordering, setReordering] = useState(false)
 
   const load = async () => { setData(await fetchOrder(id)); setLoading(false) }
   useEffect(() => { load() /* eslint-disable-next-line */ }, [id])
+
+  // 一鍵回購：以「目前專屬價」重算，選配沿用當時快照的加價
+  const reorder = async () => {
+    setReordering(true)
+    try {
+      const [products, overrides] = await Promise.all([fetchProducts(), fetchOverrides(dealer?.id)])
+      let added = 0, skipped = 0
+      for (const it of (data?.items || [])) {
+        const p = products.find(x => x.sku === it.sku)
+        if (!p) { skipped++; continue }
+        const opts = it.options || []
+        addItem({
+          sku: p.sku, name: p.name, spec: p.spec, image_url: p.image_url,
+          options: opts,
+          unitPrice: Math.round(tierUnitPrice({ product: p, tier, override: overrides[p.sku] }) + optionsDelta(opts)),
+          qty_tiers: p.qty_tiers || [],
+          qty: Number(it.qty) || 1,
+        })
+        added++
+      }
+      if (skipped > 0) alert(`${skipped} 個品項已下架，未加入；其餘 ${added} 項已加入購物車（價格依目前專屬價重算）。`)
+      navigate('/cart')
+    } finally { setReordering(false) }
+  }
 
   if (loading) return <div className="py-20 text-center text-sm text-stone-400">載入中…</div>
   if (!data?.order) return (
@@ -141,9 +170,18 @@ export default function OrderDetail() {
 
   return (
     <div className="space-y-5">
-      <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-stone-500">
-        <ArrowLeft className="h-4 w-4" />返回
-      </button>
+      <div className="flex items-center justify-between">
+        <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-stone-500">
+          <ArrowLeft className="h-4 w-4" />返回
+        </button>
+        {!cancelled && (
+          <button onClick={reorder} disabled={reordering}
+            className="flex items-center gap-1.5 rounded-lg bg-teal-700 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60">
+            {reordering ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+            再下一單
+          </button>
+        )}
+      </div>
 
       <div className="rounded-2xl border border-stone-200 bg-white p-5">
         <div className="flex items-center justify-between">

@@ -49,6 +49,7 @@ Supabase 連線資訊在 `src/supabase.js`。
 9. `storage_setup_p2.sql` —— 匯款憑證 bucket（私有 + RLS：自己訂單可上傳/讀，admin 全部）
 10. `dealer_migration_v4.sql` —— 核心會員定制詢價（custom_requests）+ 供應商（suppliers）+ 自動補倉（replenishment_orders / generate_replenishments RPC，附 pg_cron 排程範例）
 11. `dealer_migration_v5.sql` —— 經銷商加 `bank_account_key`，指定收款帳戶（木美家 / 祥鼎 / 清遠順貿）
+12. `dealer_migration_v6.sql` —— 行銷功能：公告 Banner、產品促銷價（sale_price / sale_until）、併櫃截單設定（app_settings）
 
 ## Supabase Edge Functions
 

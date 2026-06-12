@@ -3,9 +3,10 @@ import { Link } from 'react-router-dom'
 import { Search, Heart, ChevronRight, X } from 'lucide-react'
 import { useAuth } from '../../lib/auth'
 import { fetchProducts, fetchOverrides, fetchFavorites, toggleFavorite } from '../../lib/data'
-import { tierUnitPrice } from '../../lib/pricing'
+import { tierUnitPrice, saleActive } from '../../lib/pricing'
 import { nt, addTax } from '../../lib/format'
 import { LEAD_TIME, leadTimeBadgeClass } from '../../lib/filters'
+import { isNew } from '../../lib/marketing'
 
 function ChipRow({ label, value, options, onChange }) {
   return (
@@ -86,6 +87,12 @@ export default function Catalog() {
     const unit = Math.round(tierUnitPrice({ product: p, tier, override: overrides[p.sku] }))
     return withTax ? addTax(unit) : unit
   }
+  // 促銷生效且非覆寫價時，顯示劃線原價（牌價 × 等級乘數）
+  const originalOf = (p) => {
+    if (!saleActive(p) || overrides[p.sku] != null) return null
+    const unit = Math.round(Number(p.base_price) * (tier ? Number(tier.price_rate) : 1))
+    return withTax ? addTax(unit) : unit
+  }
   const hasFrom = (p) => (p.qty_tiers?.length > 0)
 
   return (
@@ -132,13 +139,19 @@ export default function Catalog() {
           {filtered.map(p => {
             const fav = favs.includes(p.sku)
             const lt = LEAD_TIME.find(x => x.key === p.lead_time_type)
+            const onSale = saleActive(p)
+            const orig = originalOf(p)
             return (
               <div key={p.sku} className="group relative overflow-hidden rounded-2xl border border-stone-200 bg-white">
-                {lt && (
-                  <span className={`absolute left-2 top-2 z-10 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${leadTimeBadgeClass(p.lead_time_type)}`}>
-                    {lt.label}
-                  </span>
-                )}
+                <div className="absolute left-2 top-2 z-10 flex flex-col items-start gap-1">
+                  {lt && (
+                    <span className={`rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${leadTimeBadgeClass(p.lead_time_type)}`}>
+                      {lt.label}
+                    </span>
+                  )}
+                  {onSale && <span className="rounded-md bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold text-white">促銷</span>}
+                  {!onSale && isNew(p) && <span className="rounded-md bg-indigo-500 px-1.5 py-0.5 text-[10px] font-bold text-white">NEW</span>}
+                </div>
                 <button onClick={() => onFav(p.sku, !fav)}
                   className="absolute right-2 top-2 z-10 rounded-full bg-white/85 p-1.5 backdrop-blur">
                   <Heart className={`h-4 w-4 ${fav ? 'fill-rose-500 text-rose-500' : 'text-stone-400'}`} />
@@ -152,8 +165,9 @@ export default function Catalog() {
                   <div className="p-3">
                     <div className="text-[10px] text-stone-400">{p.series || p.category}</div>
                     <div className="mt-0.5 line-clamp-1 text-sm font-semibold text-stone-800">{p.name}</div>
-                    <div className="mt-1.5 flex items-baseline gap-1">
-                      <span className="font-mono text-sm font-bold text-teal-700">{nt(priceOf(p))}</span>
+                    <div className="mt-1.5 flex items-baseline gap-1.5">
+                      <span className={`font-mono text-sm font-bold ${onSale ? 'text-rose-600' : 'text-teal-700'}`}>{nt(priceOf(p))}</span>
+                      {orig != null && <span className="font-mono text-[10px] text-stone-400 line-through">{nt(orig)}</span>}
                       {hasFrom(p) && <span className="text-[10px] text-stone-400">起</span>}
                     </div>
                   </div>

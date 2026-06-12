@@ -3,10 +3,40 @@ import { Link } from 'react-router-dom'
 import { LayoutGrid, Heart, ChevronRight, TrendingUp, TrendingDown, Banknote, Boxes, Package, AlertCircle, ArrowRight } from 'lucide-react'
 import { useAuth } from '../../lib/auth'
 import { fetchProducts, fetchOverrides, fetchFavorites, fetchOrders, fetchDealerDashboard } from '../../lib/data'
+import { fetchAnnouncements } from '../../lib/marketing'
 import { tierUnitPrice } from '../../lib/pricing'
 import { nt, fmtDate } from '../../lib/format'
 import { statusLabel } from '../../lib/status'
 import { ORDER_MODES, orderModeLabel } from '../../lib/filters'
+import ContainerCountdown from '../ContainerCountdown'
+
+const ANN_STYLE = {
+  promo: 'border-amber-300 bg-amber-50 text-amber-900',
+  alert: 'border-rose-300 bg-rose-50 text-rose-900',
+  info:  'border-teal-300 bg-teal-50 text-teal-900',
+}
+
+function Announcements({ list }) {
+  if (!list.length) return null
+  return (
+    <div className="space-y-2">
+      {list.slice(0, 3).map(a => {
+        const inner = (
+          <div className={`rounded-2xl border p-4 ${ANN_STYLE[a.kind] || ANN_STYLE.info}`}>
+            <div className="flex items-center gap-2">
+              {a.kind === 'promo' && <span className="rounded bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold text-white">促銷</span>}
+              <div className="text-sm font-bold">{a.title}</div>
+            </div>
+            {a.body && <div className="mt-1 text-xs leading-relaxed opacity-80">{a.body}</div>}
+          </div>
+        )
+        return a.link
+          ? <Link key={a.id} to={a.link} className="block transition active:scale-[0.99]">{inner}</Link>
+          : <div key={a.id}>{inner}</div>
+      })}
+    </div>
+  )
+}
 
 function StatCard({ icon: Icon, label, value, sub, href, tone = 'default' }) {
   const toneCls = {
@@ -80,13 +110,14 @@ export default function Home() {
   const [favs, setFavs] = useState([])
   const [orders, setOrders] = useState([])
   const [dash, setDash] = useState(null)
+  const [anns, setAnns] = useState([])
 
   useEffect(() => {
     (async () => {
-      const [p, o, f, ord, d] = await Promise.all([
-        fetchProducts(), fetchOverrides(dealer?.id), fetchFavorites(dealer?.id), fetchOrders(dealer?.id), fetchDealerDashboard(dealer?.id),
+      const [p, o, f, ord, d, a] = await Promise.all([
+        fetchProducts(), fetchOverrides(dealer?.id), fetchFavorites(dealer?.id), fetchOrders(dealer?.id), fetchDealerDashboard(dealer?.id), fetchAnnouncements(),
       ])
-      setProducts(p); setOverrides(o); setFavs(f); setOrders(ord); setDash(d)
+      setProducts(p); setOverrides(o); setFavs(f); setOrders(ord); setDash(d); setAnns(a)
     })()
   }, [dealer?.id])
 
@@ -107,6 +138,12 @@ export default function Home() {
           <LayoutGrid className="h-4 w-4" />開始選品
         </Link>
       </div>
+
+      {/* 本週櫃截單倒數（每周一櫃） */}
+      <ContainerCountdown linkToCatalog />
+
+      {/* 公告 / 行銷 Banner */}
+      <Announcements list={anns} />
 
       {/* 待收款警示 */}
       {dash?.awaitingPayment.count > 0 && (

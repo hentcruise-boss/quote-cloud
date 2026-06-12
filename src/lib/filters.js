@@ -40,7 +40,10 @@ export const DELIVERY_SERVICES = [
 export const deliveryLabel = (k) => (DELIVERY_SERVICES.find(x => x.key === k) || {}).label || k
 
 // 組配費規則：未稅小計 < 60,000 → 加 3,000，否則 0
-export const computeAssemblyFee = (subtotalExTax) => Number(subtotalExTax) < 60000 ? 3000 : 0
+export const ASSEMBLY_FREE_THRESHOLD = 60000
+export const ASSEMBLY_FEE = 3000
+export const computeAssemblyFee = (subtotalExTax) =>
+  Number(subtotalExTax) < ASSEMBLY_FREE_THRESHOLD ? ASSEMBLY_FEE : 0
 
 // 會員類型
 export const MEMBER_TYPES = [

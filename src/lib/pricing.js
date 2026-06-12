@@ -10,10 +10,27 @@
 // options : 已選選配陣列 [{ price_delta }]
 // qty     : 數量
 
+// 促銷價是否生效（sale_until 為含當日的到期日）
+export function saleActive(product, now = new Date()) {
+  const sp = product?.sale_price
+  if (sp == null || sp === '' || Number(sp) <= 0) return false
+  if (product.sale_until) {
+    const end = new Date(String(product.sale_until).length === 10
+      ? product.sale_until + 'T23:59:59' : product.sale_until)
+    if (end < now) return false
+  }
+  return true
+}
+
+// 現貨計價基準：促銷生效用促銷價，否則牌價
+export function effectiveBase(product) {
+  return saleActive(product) ? Number(product.sale_price) : Number(product.base_price)
+}
+
 export function tierUnitPrice({ product, tier, override }) {
   if (override != null && override !== '') return Number(override)
   const rate = tier ? Number(tier.price_rate) : 1
-  return Number(product.base_price) * rate
+  return effectiveBase(product) * rate
 }
 
 export function optionsDelta(options = []) {
@@ -44,7 +61,7 @@ export function finalUnitPrice({ product, tier, override, options = [], qty = 1 
 export function modeUnitPrice({ product, tier, override, mode }) {
   const baseRef = mode?.useFutures && product.futures_price != null
     ? Number(product.futures_price)
-    : Number(product.base_price)
+    : effectiveBase(product)
   const tierRate = tier ? Number(tier.price_rate) : 1
   const tierPrice = override != null && override !== '' ? Number(override) : baseRef * tierRate
   return Math.round(tierPrice * (mode?.priceRate ?? 1))

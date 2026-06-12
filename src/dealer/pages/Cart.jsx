@@ -6,7 +6,8 @@ import { useCart } from '../../lib/cart'
 import { qtyRate } from '../../lib/pricing'
 import { createOrder } from '../../lib/data'
 import { nt, addTax, taxOf } from '../../lib/format'
-import { ORDER_MODES, DELIVERY_SERVICES, computeAssemblyFee } from '../../lib/filters'
+import { ORDER_MODES, DELIVERY_SERVICES, computeAssemblyFee, ASSEMBLY_FREE_THRESHOLD } from '../../lib/filters'
+import ContainerCountdown from '../ContainerCountdown'
 
 const effUnit = (line) => Math.round(Number(line.unitPrice) * qtyRate({ qty_tiers: line.qty_tiers }, line.qty))
 
@@ -76,6 +77,8 @@ export default function Cart() {
           明細{withTax ? '含稅' : '未稅'} · 切換
         </button>
       </div>
+
+      <ContainerCountdown compact />
 
       {/* 品項 */}
       <div className="space-y-3">
@@ -148,19 +151,35 @@ export default function Cart() {
           {DELIVERY_SERVICES.map(d => {
             const active = delivery === d.key
             const fee = d.key === 'assembly' ? computeAssemblyFee(itemsSub) : 0
+            const gap = ASSEMBLY_FREE_THRESHOLD - itemsSub
+            const pct = Math.min(100, Math.round(itemsSub / ASSEMBLY_FREE_THRESHOLD * 100))
             return (
               <button key={d.key} type="button" onClick={() => setDelivery(d.key)}
-                className={`flex w-full items-start justify-between gap-3 rounded-xl border p-3 text-left transition ${active ? 'border-teal-600 bg-teal-50/40' : 'border-stone-200'}`}>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className={`inline-block h-4 w-4 flex-shrink-0 rounded-full border ${active ? 'border-teal-600 bg-teal-600' : 'border-stone-300'}`} />
-                    <span className="text-sm font-semibold text-stone-800">{d.label}</span>
+                className={`flex w-full flex-col gap-2 rounded-xl border p-3 text-left transition ${active ? 'border-teal-600 bg-teal-50/40' : 'border-stone-200'}`}>
+                <div className="flex w-full items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-block h-4 w-4 flex-shrink-0 rounded-full border ${active ? 'border-teal-600 bg-teal-600' : 'border-stone-300'}`} />
+                      <span className="text-sm font-semibold text-stone-800">{d.label}</span>
+                    </div>
+                    <div className="ml-6 mt-0.5 text-xs text-stone-500">{d.note}</div>
                   </div>
-                  <div className="ml-6 mt-0.5 text-xs text-stone-500">{d.note}</div>
+                  <div className="text-right">
+                    <div className="font-mono text-sm font-bold text-stone-800">{fee === 0 ? '免費' : `+${nt(fee)}`}</div>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <div className="font-mono text-sm font-bold text-stone-800">{fee === 0 ? '免費' : `+${nt(fee)}`}</div>
-                </div>
+                {d.key === 'assembly' && (
+                  gap > 0 ? (
+                    <div className="ml-6 w-[calc(100%-1.5rem)]">
+                      <div className="mb-1 text-[11px] text-amber-700">再加購 <b className="font-mono">{nt(gap)}</b>（未稅）即可<b>免組配費 {nt(3000)}</b></div>
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-stone-100">
+                        <div className="h-full rounded-full bg-amber-500 transition-all" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  ) : itemsSub > 0 && (
+                    <div className="ml-6 text-[11px] font-semibold text-emerald-600">已達免組配費門檻 🎉</div>
+                  )
+                )}
               </button>
             )
           })}

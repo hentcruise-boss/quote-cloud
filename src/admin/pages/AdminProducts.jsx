@@ -4,7 +4,7 @@ import { supabase } from '../../supabase'
 import { nt } from '../../lib/format'
 import { LEAD_TIME, SCENES_PRESET } from '../../lib/filters'
 
-const EMPTY = { sku: '', name: '', series: '', category: '', description: '', spec: '', material: '', base_price: 0, futures_price: '', stock_qty: 0, image_url: '', qty_tiers: [], is_active: true, sort_order: 0, lead_time_type: 'normal', scenes: [], supplier_id: '', reorder_point: 5, reorder_qty: 10 }
+const EMPTY = { sku: '', name: '', series: '', category: '', description: '', spec: '', material: '', base_price: 0, futures_price: '', stock_qty: 0, sale_price: '', sale_until: '', image_url: '', qty_tiers: [], is_active: true, sort_order: 0, lead_time_type: 'normal', scenes: [], supplier_id: '', reorder_point: 5, reorder_qty: 10 }
 
 // 把檔案上傳到 product-images bucket，回傳 public URL
 async function uploadProductImage(file, sku) {
@@ -84,7 +84,13 @@ function ProductModal({ product, onClose, onSaved }) {
   const save = async () => {
     if (!f.sku || !f.name) { alert('SKU 與名稱必填'); return }
     setBusy(true)
-    await supabase.from('dealer_products').upsert({ ...f, base_price: Number(f.base_price), sort_order: Number(f.sort_order) }, { onConflict: 'sku' })
+    await supabase.from('dealer_products').upsert({
+      ...f,
+      base_price: Number(f.base_price),
+      sort_order: Number(f.sort_order),
+      sale_price: f.sale_price === '' || f.sale_price == null ? null : Number(f.sale_price),
+      sale_until: f.sale_until || null,
+    }, { onConflict: 'sku' })
     setBusy(false); onSaved()
   }
 
@@ -122,6 +128,14 @@ function ProductModal({ product, onClose, onSaved }) {
             <L label="現貨牌價（未稅）"><input type="number" value={f.base_price} onChange={e => set('base_price', e.target.value)} className="inp font-mono" /></L>
             <L label="期貨牌價（未稅，可空）"><input type="number" value={f.futures_price ?? ''} onChange={e => set('futures_price', e.target.value === '' ? null : Number(e.target.value))} className="inp font-mono" placeholder="留空＝不開放期貨" /></L>
             <L label="現貨庫存（件）"><input type="number" value={f.stock_qty || 0} onChange={e => set('stock_qty', Number(e.target.value) || 0)} className="inp font-mono" /></L>
+          </div>
+          {/* 促銷（行銷） */}
+          <div className="rounded-lg border border-rose-200 bg-rose-50/30 p-3">
+            <div className="mb-2 text-xs font-semibold uppercase text-rose-700">限時促銷（對現貨牌價生效；空＝無促銷）</div>
+            <div className="grid grid-cols-2 gap-3">
+              <L label="促銷價（未稅）"><input type="number" value={f.sale_price ?? ''} onChange={e => set('sale_price', e.target.value)} className="inp font-mono" placeholder="—" /></L>
+              <L label="促銷到期日（空＝不限）"><input type="date" value={f.sale_until ?? ''} onChange={e => set('sale_until', e.target.value)} className="inp" /></L>
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <L label="排序"><input type="number" value={f.sort_order} onChange={e => set('sort_order', e.target.value)} className="inp font-mono" /></L>

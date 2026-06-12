@@ -1,12 +1,13 @@
 import React from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Heart, Boxes, ReceiptText, ChevronRight, LogOut, Headset, BadgeCheck, Sparkles } from 'lucide-react'
+import { Heart, Boxes, ReceiptText, ChevronRight, LogOut, Headset, BadgeCheck, Sparkles, Map } from 'lucide-react'
 import { useAuth } from '../../lib/auth'
 
 const BASE_LINKS = [
   { to: '/favorites', icon: Heart, label: '常用清單', desc: '收藏的品項，回購更快' },
   { to: '/inventory', icon: Boxes, label: '庫存代管', desc: '查看樹林倉庫存、申請出庫' },
   { to: '/billing', icon: ReceiptText, label: '對帳中心', desc: '月結對帳單、付款紀錄' },
+  { to: '/services', icon: Map, label: '服務全圖', desc: 'A/B/C/D 四檔服務 · 升級諮詢' },
 ]
 const CORE_LINKS = [
   { to: '/custom', icon: Sparkles, label: '定制詢價', desc: '核心會員專屬：有限定制 / 加急', accent: 'amber' },
