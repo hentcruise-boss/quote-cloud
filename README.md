@@ -50,6 +50,10 @@ Supabase 連線資訊在 `src/supabase.js`。
 10. `dealer_migration_v4.sql` —— 核心會員定制詢價（custom_requests）+ 供應商（suppliers）+ 自動補倉（replenishment_orders / generate_replenishments RPC，附 pg_cron 排程範例）
 11. `dealer_migration_v5.sql` —— 經銷商加 `bank_account_key`，指定收款帳戶（木美家 / 祥鼎 / 清遠順貿）
 
+## Supabase Edge Functions
+
+- `supabase/functions/send-replenishment-email/` —— 把補倉單自動寄 email 給供應商（透過 Resend）。**部署/排程說明**在該資料夾的 `README.md`。需要 Resend API key + Supabase CLI 一次性部署。
+
 ### 2. 建立登入帳號
 資料表的 `dealers` / `admins` 需綁定一個 Supabase Auth 使用者。
 本系統內建**自動綁定**機制：只要 Auth 帳號的 Email 與資料列相符即會自動連結。

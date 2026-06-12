@@ -1,16 +1,28 @@
 import React, { useEffect, useState } from 'react'
-import { Zap, Send, PackageCheck, X, AlertTriangle } from 'lucide-react'
+import { Zap, Send, PackageCheck, X, AlertTriangle, Mail, Loader2 } from 'lucide-react'
 import { supabase } from '../../supabase'
-import { fetchReplenishments, fetchReplenishmentItems, generateReplenishments, replenishmentReceive, fetchSuppliers } from '../../lib/data'
+import { fetchReplenishments, fetchReplenishmentItems, generateReplenishments, replenishmentReceive, fetchSuppliers, sendReplenishmentEmail, sendAllPendingReplenishmentEmails } from '../../lib/data'
 import { fmtDateTime } from '../../lib/format'
 import { replenishmentLabel } from '../../lib/status'
 
 function DetailModal({ rep, suppliersMap, onClose, onChanged }) {
   const [items, setItems] = useState([])
   const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState('')
+  const supplier = suppliersMap[rep.supplier_id]
 
   useEffect(() => { fetchReplenishmentItems(rep.id).then(setItems) }, [rep.id])
 
+  const sendEmail = async () => {
+    if (!supplier?.email) { alert(`供應商「${supplier?.name || '—'}」未設定 email，請先去「供應商」分頁補上。`); return }
+    if (!confirm(`寄送本張補倉單給 ${supplier.email}？`)) return
+    setBusy(true); setMsg('')
+    try {
+      await sendReplenishmentEmail(rep.id)
+      setMsg('已寄出 ✓'); onChanged?.()
+      setTimeout(() => onClose(), 800)
+    } catch (e) { setMsg('寄送失敗：' + e.message); setBusy(false) }
+  }
   const markSent = async () => {
     setBusy(true)
     await supabase.from('replenishment_orders').update({ status: 'sent', sent_at: new Date().toISOString() }).eq('id', rep.id)
@@ -52,9 +64,22 @@ function DetailModal({ rep, suppliersMap, onClose, onChanged }) {
               {items.length === 0 && <div className="px-3 py-4 text-center text-xs text-slate-400">無品項</div>}
             </div>
           </div>
+          {supplier && (
+            <div className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">
+              供應商 email：{supplier.email
+                ? <span className="font-mono text-slate-800">{supplier.email}</span>
+                : <span className="text-rose-500">尚未設定（無法寄 email）</span>}
+            </div>
+          )}
           <div className="flex flex-wrap gap-2 pt-2">
+            {(rep.status === 'pending' || rep.status === 'sent') && supplier?.email && (
+              <button onClick={sendEmail} disabled={busy} className="flex items-center gap-1.5 rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                {rep.status === 'sent' ? '重新寄 email' : '寄 email 給供應商'}
+              </button>
+            )}
             {rep.status === 'pending' && (
-              <button onClick={markSent} disabled={busy} className="flex items-center gap-1.5 rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white"><Send className="h-4 w-4" />標為「已發送」</button>
+              <button onClick={markSent} disabled={busy} className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600"><Send className="h-4 w-4" />僅標為「已發送」（不寄信）</button>
             )}
             {(rep.status === 'pending' || rep.status === 'sent') && (
               <button onClick={receive} disabled={busy} className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white"><PackageCheck className="h-4 w-4" />確認入庫（加回庫存）</button>
@@ -63,6 +88,7 @@ function DetailModal({ rep, suppliersMap, onClose, onChanged }) {
               <button onClick={cancel} className="rounded-lg border border-rose-200 px-3 py-2 text-sm text-rose-500">取消</button>
             )}
           </div>
+          {msg && <div className={`rounded-lg px-3 py-2 text-sm ${msg.startsWith('已寄出') ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-600'}`}>{msg}</div>}
         </div>
       </div>
     </div>
@@ -94,12 +120,28 @@ export default function AdminReplenishment() {
     finally { setBusy(false) }
   }
 
+  const sendAll = async () => {
+    const pending = list.filter(r => r.status === 'pending').length
+    if (pending === 0) { setMsg('目前沒有待發送的補倉單'); return }
+    if (!confirm(`寄送全部 ${pending} 張待發送的補倉單給對應供應商？\n（會跳過未設定 email 的供應商）`)) return
+    setBusy(true); setMsg('')
+    try {
+      const r = await sendAllPendingReplenishmentEmails()
+      setMsg(`已寄出 ${r.sent} 張` + (r.failed > 0 ? `（失敗 ${r.failed} 張，請查看單一補倉單詳情）` : ''))
+      load()
+    } catch (e) { setMsg('失敗：' + e.message) }
+    finally { setBusy(false) }
+  }
+
   return (
     <div className="space-y-4">
       {open && <DetailModal rep={open} suppliersMap={suppliersMap} onClose={() => setOpen(null)} onChanged={load} />}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <h1 className="text-lg font-bold">補倉訂單（{list.length}）</h1>
-        <button onClick={run} disabled={busy} className="flex items-center gap-1.5 rounded-lg bg-amber-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"><Zap className="h-4 w-4" />{busy ? '產生中…' : '立即產生補倉單'}</button>
+        <div className="flex gap-2">
+          <button onClick={sendAll} disabled={busy} className="flex items-center gap-1.5 rounded-lg border border-teal-300 bg-teal-50 px-3 py-2 text-sm font-semibold text-teal-700 disabled:opacity-60"><Mail className="h-4 w-4" />寄送全部待發送</button>
+          <button onClick={run} disabled={busy} className="flex items-center gap-1.5 rounded-lg bg-amber-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"><Zap className="h-4 w-4" />{busy ? '產生中…' : '立即產生補倉單'}</button>
+        </div>
       </div>
       {msg && <div className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">{msg}</div>}
 

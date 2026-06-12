@@ -254,6 +254,28 @@ export async function replenishmentReceive(id) {
   if (error) throw error
 }
 
+// 寄送單張補倉單給供應商（透過 Edge Function + Resend）
+export async function sendReplenishmentEmail(id) {
+  const { data, error } = await supabase.functions.invoke('send-replenishment-email', {
+    body: { replenishment_id: id },
+  })
+  if (error) throw error
+  if (!data?.ok || data?.failed > 0) {
+    const detail = data?.results?.find(r => !r.ok)?.error || data?.error || '未知錯誤'
+    throw new Error(detail)
+  }
+  return data
+}
+
+// 寄送所有 pending 補倉單
+export async function sendAllPendingReplenishmentEmails() {
+  const { data, error } = await supabase.functions.invoke('send-replenishment-email', {
+    body: { send_all_pending: true },
+  })
+  if (error) throw error
+  return data
+}
+
 // ============ 經銷商 Dashboard 統計 ============
 export async function fetchDealerDashboard(dealerId) {
   if (!dealerId) return null
