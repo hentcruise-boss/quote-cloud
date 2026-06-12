@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react'
-import { X, ArrowRight, Ban } from 'lucide-react'
+import { X, ArrowRight, Ban, CheckCircle2 } from 'lucide-react'
 import { supabase } from '../../supabase'
 import { nt, fmtDate, fmtDateTime } from '../../lib/format'
-import { ORDER_FLOW, statusLabel, statusIndex, nextStatus } from '../../lib/status'
+import { statusLabel, flowFor, statusIndexInFlow, nextStatusInFlow } from '../../lib/status'
 import { orderModeLabel, deliveryLabel } from '../../lib/filters'
 
 function OrderModal({ id, dealersMap, onClose, onChanged }) {
@@ -23,10 +23,19 @@ function OrderModal({ id, dealersMap, onClose, onChanged }) {
   const setStatus = async (status) => {
     setBusy(true); await supabase.from('orders').update({ status }).eq('id', id); await load(); setBusy(false); onChanged?.()
   }
+  const confirmPayment = async () => {
+    if (!confirm('確認已收到匯款？將推進至「已收款」並記錄入帳時間。')) return
+    setBusy(true)
+    await supabase.from('orders').update({ status: 'paid', payment_received_at: new Date().toISOString() }).eq('id', id)
+    await load(); setBusy(false); onChanged?.()
+  }
   const saveEta = async () => { await supabase.from('orders').update({ eta: eta || null }).eq('id', id); onChanged?.() }
 
   if (!order) return null
-  const nxt = nextStatus(order.status)
+  const mode = order.order_mode || 'cash'
+  const flow = flowFor(mode)
+  const curIdx = statusIndexInFlow(order.status, mode)
+  const nxt = nextStatusInFlow(order.status, mode)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -48,18 +57,29 @@ function OrderModal({ id, dealersMap, onClose, onChanged }) {
               )}
             </div>
             <div className="flex flex-wrap gap-1.5">
-              {ORDER_FLOW.map((s, i) => (
+              {flow.map((s, i) => (
                 <button key={s.key} onClick={() => setStatus(s.key)} disabled={busy}
-                  className={`rounded-lg px-2.5 py-1 text-xs font-medium ${i <= statusIndex(order.status) ? 'bg-teal-700 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                  className={`rounded-lg px-2.5 py-1 text-xs font-medium ${i <= curIdx ? 'bg-teal-700 text-white' : 'bg-slate-100 text-slate-500'}`}>
                   {s.label}
                 </button>
               ))}
             </div>
-            {nxt && (
-              <button onClick={() => setStatus(nxt)} disabled={busy}
-                className="mt-3 flex items-center gap-1.5 rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
-                推進到「{statusLabel(nxt)}」<ArrowRight className="h-4 w-4" />
-              </button>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {order.status === 'awaiting_payment' && (
+                <button onClick={confirmPayment} disabled={busy}
+                  className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
+                  <CheckCircle2 className="h-4 w-4" />確認已收到匯款（推進至「已收款」）
+                </button>
+              )}
+              {nxt && order.status !== 'awaiting_payment' && (
+                <button onClick={() => setStatus(nxt)} disabled={busy}
+                  className="flex items-center gap-1.5 rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
+                  推進到「{statusLabel(nxt)}」<ArrowRight className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            {order.payment_received_at && (
+              <div className="mt-2 text-xs text-emerald-700">入帳時間：{fmtDateTime(order.payment_received_at)}</div>
             )}
             <div className="mt-3 flex items-center gap-2 text-sm">
               <span className="text-slate-500">預計到貨日</span>
@@ -138,6 +158,7 @@ export default function AdminOrders() {
   useEffect(() => { load() }, [])
 
   const shown = orders.filter(o => filter === 'all' ? true : filter === 'open' ? !['delivered', 'cancelled'].includes(o.status) : o.status === filter)
+  const awaitingCount = orders.filter(o => o.status === 'awaiting_payment').length
 
   return (
     <div className="space-y-4">
@@ -145,8 +166,14 @@ export default function AdminOrders() {
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-bold">訂單（{orders.length}）</h1>
         <div className="flex gap-1 text-xs">
-          {[['all', '全部'], ['open', '進行中'], ['delivered', '已出庫'], ['cancelled', '已取消']].map(([k, l]) => (
-            <button key={k} onClick={() => setFilter(k)} className={`rounded-full px-3 py-1 font-medium ${filter === k ? 'bg-slate-800 text-white' : 'bg-white text-slate-500 border border-slate-200'}`}>{l}</button>
+          {[
+            ['all', '全部'],
+            ['awaiting_payment', awaitingCount > 0 ? `待收款 ${awaitingCount}` : '待收款'],
+            ['open', '進行中'],
+            ['delivered', '已出庫'],
+            ['cancelled', '已取消'],
+          ].map(([k, l]) => (
+            <button key={k} onClick={() => setFilter(k)} className={`rounded-full px-3 py-1 font-medium ${filter === k ? 'bg-slate-800 text-white' : k === 'awaiting_payment' && awaitingCount > 0 ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-white text-slate-500 border border-slate-200'}`}>{l}</button>
           ))}
         </div>
       </div>
@@ -164,7 +191,7 @@ export default function AdminOrders() {
                 <td className="px-4 py-2.5 text-slate-500">{fmtDate(o.created_at)}</td>
                 <td className="px-4 py-2.5 font-mono">{nt(o.total)}</td>
                 <td className="px-4 py-2.5 text-slate-500">{o.eta ? fmtDate(o.eta) : '—'}</td>
-                <td className="px-4 py-2.5"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${o.status === 'cancelled' ? 'bg-slate-100 text-slate-500' : o.status === 'delivered' ? 'bg-emerald-50 text-emerald-700' : 'bg-teal-50 text-teal-700'}`}>{statusLabel(o.status)}</span></td>
+                <td className="px-4 py-2.5"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${o.status === 'cancelled' ? 'bg-slate-100 text-slate-500' : o.status === 'delivered' ? 'bg-emerald-50 text-emerald-700' : o.status === 'awaiting_payment' ? 'bg-amber-50 text-amber-700' : 'bg-teal-50 text-teal-700'}`}>{statusLabel(o.status)}</span></td>
               </tr>
             ))}
             {shown.length === 0 && <tr><td colSpan={6} className="px-4 py-10 text-center text-sm text-slate-400">沒有訂單</td></tr>}

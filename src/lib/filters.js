@@ -23,11 +23,12 @@ export const SCENES_PRESET = [
   '客廳', '餐廳', '臥室', '書房', '兒童房', '收納', '軟裝', '公共區', '商業空間',
 ]
 
-// 下單方式（對應 dealer_migration_v2 的 orders.order_mode）
+// 下單方式（對應 dealer_migration_v2 / v3 的 orders.order_mode）
 export const ORDER_MODES = [
-  { key: 'cash',      label: '現金提貨',      depositRate: 1.0, priceRate: 1.0,  useFutures: false, prep: '1 天備貨',  note: '一次付清，最快取貨' },
-  { key: 'lock10',    label: '10% 鎖單',     depositRate: 0.1, priceRate: 0.9,  useFutures: false, prep: '3 天備貨',  note: '付 10% 定金鎖單，享現貨價 9 折' },
-  { key: 'futures30', label: '期貨 30% 鎖單', depositRate: 0.3, priceRate: 1.0,  useFutures: true,  prep: '依船期備貨', note: '付 30% 定金，享期貨牌價' },
+  { key: 'cash',      label: '現金提貨',        depositRate: 1.0, priceRate: 1.0,  useFutures: false, prep: '1 天備貨',  note: '一次付清，最快取貨' },
+  { key: 'lock10',    label: '10% 鎖單',       depositRate: 0.1, priceRate: 0.9,  useFutures: false, prep: '3 天備貨',  note: '付 10% 定金鎖單，享現貨價 9 折' },
+  { key: 'lock30',    label: '現貨 30% 鎖單',   depositRate: 0.3, priceRate: 0.85, useFutures: false, prep: '依排程備貨', note: '付 30% 定金鎖單，享現貨價 85 折' },
+  { key: 'futures30', label: '期貨 30% 鎖單',   depositRate: 0.3, priceRate: 1.0,  useFutures: true,  prep: '依船期備貨', note: '付 30% 定金，享期貨牌價' },
 ]
 export const orderModeLabel = (k) => (ORDER_MODES.find(x => x.key === k) || {}).label || k
 

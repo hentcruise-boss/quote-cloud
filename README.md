@@ -45,6 +45,7 @@ Supabase 連線資訊在 `src/supabase.js`。
 5. `storage_setup.sql` —— 產品圖片 Storage bucket 與權限（後台「產品」要能上傳圖片才需要）
 6. `dealer_migration_filters.sql` —— 加上「交期」「場景」欄位（給經銷商前台篩選用）
 7. `dealer_migration_v2.sql` —— 下單方式（現金／10%鎖單／期貨30%鎖單）、配送服務（自運／預約組配）、會員類型（經銷／核心）、現貨庫存與期貨牌價
+8. `dealer_migration_v3.sql` —— 新增「現貨 30% 鎖單」（15% off）下單方式；訂單加上「待收款 → 已收款 → 待提貨」流程；後台「確認已收到匯款」操作
 
 ### 2. 建立登入帳號
 資料表的 `dealers` / `admins` 需綁定一個 Supabase Auth 使用者。

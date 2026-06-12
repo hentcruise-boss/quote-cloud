@@ -1,10 +1,50 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { ArrowLeft, Check, Truck } from 'lucide-react'
+import { ArrowLeft, Check, Truck, Banknote, Copy } from 'lucide-react'
 import { fetchOrder } from '../../lib/data'
 import { nt, fmtDate, fmtDateTime } from '../../lib/format'
-import { ORDER_FLOW, statusIndex, statusLabel } from '../../lib/status'
+import { flowFor, statusIndexInFlow, statusLabel } from '../../lib/status'
 import { orderModeLabel, deliveryLabel } from '../../lib/filters'
+import { BANK_INFO } from '../../lib/bankInfo'
+
+function PaymentInfoCard({ order }) {
+  const isDeposit = Number(order.deposit_amount) > 0 && Number(order.deposit_amount) < Number(order.total)
+  const dueAmount = isDeposit ? order.deposit_amount : order.total
+  const copy = (t) => navigator.clipboard?.writeText(t)
+  return (
+    <div className="overflow-hidden rounded-2xl border-2 border-amber-300 bg-amber-50">
+      <div className="flex items-center gap-2 border-b border-amber-200 bg-amber-100/60 px-5 py-3">
+        <Banknote className="h-5 w-5 text-amber-700" />
+        <div className="text-sm font-bold text-amber-900">請於 3 日內完成匯款</div>
+      </div>
+      <div className="space-y-3 p-5">
+        <div>
+          <div className="text-xs text-amber-700">本次須匯金額（{isDeposit ? '定金' : '全款'}）</div>
+          <div className="mt-0.5 font-mono text-3xl font-extrabold text-amber-900">{nt(dueAmount)}</div>
+        </div>
+        <div className="space-y-1.5 rounded-xl bg-white px-4 py-3 text-sm">
+          <Row label="銀行" value={BANK_INFO.bank} />
+          <Row label="分行" value={BANK_INFO.branch} />
+          <Row label="戶名" value={BANK_INFO.name} copy={copy} />
+          <Row label="帳號" value={BANK_INFO.account} mono copy={copy} />
+          <Row label="備註" value={order.order_no} mono copy={copy} hint="請於匯款備註欄填上訂單編號" />
+        </div>
+        <p className="text-xs leading-relaxed text-amber-800">
+          {BANK_INFO.note} 完成後請等待專員確認入帳，狀態會自動更新為「已收款」。
+        </p>
+      </div>
+    </div>
+  )
+}
+const Row = ({ label, value, mono, copy, hint }) => (
+  <div className="flex items-center justify-between gap-3">
+    <span className="text-xs text-stone-400">{label}</span>
+    <div className="flex items-center gap-2">
+      <span className={`text-sm text-stone-800 ${mono ? 'font-mono' : ''}`}>{value}</span>
+      {copy && <button onClick={() => copy(value)} title={hint || '複製'} className="text-stone-400 hover:text-teal-700"><Copy className="h-3.5 w-3.5" /></button>}
+    </div>
+  </div>
+)
 
 export default function OrderDetail() {
   const { id } = useParams()
@@ -22,8 +62,10 @@ export default function OrderDetail() {
   )
 
   const { order, items, events } = data
-  const curIdx = statusIndex(order.status)
+  const flow = flowFor(order.order_mode || 'cash')
+  const curIdx = statusIndexInFlow(order.status, order.order_mode || 'cash')
   const cancelled = order.status === 'cancelled'
+  const awaitingPayment = order.status === 'awaiting_payment'
   // 各階段完成時間（取該狀態最早一次事件）
   const eventAt = {}
   events.forEach(e => { if (!eventAt[e.status]) eventAt[e.status] = e.created_at })
@@ -56,14 +98,17 @@ export default function OrderDetail() {
         )}
       </div>
 
+      {/* 待收款時顯示匯款資訊 */}
+      {awaitingPayment && !cancelled && <PaymentInfoCard order={order} />}
+
       {/* 進度時間軸 */}
       <div className="rounded-2xl border border-stone-200 bg-white p-5">
-        <div className="mb-4 text-sm font-semibold text-stone-700">物流進度</div>
+        <div className="mb-4 text-sm font-semibold text-stone-700">訂單進度</div>
         {cancelled ? (
           <div className="rounded-lg bg-stone-50 py-6 text-center text-sm text-stone-400">此訂單已取消</div>
         ) : (
           <ol className="relative ml-3 border-l-2 border-stone-100">
-            {ORDER_FLOW.map((step, i) => {
+            {flow.map((step, i) => {
               const done = i <= curIdx
               const current = i === curIdx
               return (

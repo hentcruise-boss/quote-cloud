@@ -1,24 +1,45 @@
-// 訂單狀態流程（與 dealer_schema.sql 的 status_label 對應）
-export const ORDER_FLOW = [
-  { key: 'placed',     label: '已成立' },
-  { key: 'production', label: '生產' },
-  { key: 'shipping',   label: '海運' },
-  { key: 'arrived',    label: '到台' },
-  { key: 'stored',     label: '入庫' },
-  { key: 'delivered',  label: '出庫' },
-]
-
+// 訂單狀態（與 dealer_migration_v3 的 status_label 對應）
 export const STATUS_LABEL = {
-  ...Object.fromEntries(ORDER_FLOW.map(s => [s.key, s.label])),
-  cancelled: '已取消',
+  awaiting_payment: '待收款',
+  paid:             '已收款',
+  ready_pickup:     '待提貨',
+  placed:           '已成立',
+  production:       '生產',
+  shipping:         '海運',
+  arrived:          '到台',
+  stored:           '入庫',
+  delivered:        '已交付/出庫',
+  cancelled:        '已取消',
 }
-
 export const statusLabel = (k) => STATUS_LABEL[k] || k
 
-// 取得目前狀態在流程中的索引（cancelled / 未知 回傳 -1）
-export const statusIndex = (k) => ORDER_FLOW.findIndex(s => s.key === k)
+// 依「下單方式」的狀態流程
+// cash / lock10 / lock30：待收款 → 已收款 → 待提貨 → 已交付
+// futures30：待收款 → 已收款 → 生產 → 海運 → 到台 → 入庫 → 已交付
+export const FLOWS = {
+  cash:      ['awaiting_payment', 'paid', 'ready_pickup', 'delivered'],
+  lock10:    ['awaiting_payment', 'paid', 'ready_pickup', 'delivered'],
+  lock30:    ['awaiting_payment', 'paid', 'ready_pickup', 'delivered'],
+  futures30: ['awaiting_payment', 'paid', 'production', 'shipping', 'arrived', 'stored', 'delivered'],
+}
 
-// 下一個狀態（推進用），已到最後或已取消則回傳 null
+export function flowFor(orderMode) {
+  return (FLOWS[orderMode] || FLOWS.cash).map(k => ({ key: k, label: STATUS_LABEL[k] }))
+}
+
+export function statusIndexInFlow(status, orderMode) {
+  return flowFor(orderMode).findIndex(s => s.key === status)
+}
+
+export function nextStatusInFlow(status, orderMode) {
+  const flow = flowFor(orderMode)
+  const i = flow.findIndex(s => s.key === status)
+  return i >= 0 && i < flow.length - 1 ? flow[i + 1].key : null
+}
+
+// ----- 以下為向後相容（舊頁面引用）------------------------------------
+export const ORDER_FLOW = FLOWS.futures30.map(k => ({ key: k, label: STATUS_LABEL[k] }))
+export const statusIndex = (k) => ORDER_FLOW.findIndex(s => s.key === k)
 export const nextStatus = (k) => {
   const i = statusIndex(k)
   return i >= 0 && i < ORDER_FLOW.length - 1 ? ORDER_FLOW[i + 1].key : null

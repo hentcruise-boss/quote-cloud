@@ -61,7 +61,7 @@ export async function createOrder({ dealerId, recipient, phone, address, note,
   const order = {
     order_no: orderNo(),
     dealer_id: dealerId,
-    status: 'placed',
+    status: 'awaiting_payment',
     subtotal, tax, total,
     order_mode: orderMode,
     delivery_service: deliveryService,

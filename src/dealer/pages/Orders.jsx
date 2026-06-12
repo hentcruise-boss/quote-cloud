@@ -4,13 +4,15 @@ import { ClipboardList, ChevronRight } from 'lucide-react'
 import { useAuth } from '../../lib/auth'
 import { fetchOrders } from '../../lib/data'
 import { nt, fmtDate } from '../../lib/format'
-import { statusLabel, statusIndex } from '../../lib/status'
+import { statusLabel, flowFor, statusIndexInFlow } from '../../lib/status'
 
 function StatusPill({ status }) {
   const cancelled = status === 'cancelled'
   const done = status === 'delivered'
+  const awaiting = status === 'awaiting_payment'
   const cls = cancelled ? 'bg-stone-100 text-stone-500'
     : done ? 'bg-emerald-50 text-emerald-700'
+    : awaiting ? 'bg-amber-50 text-amber-700'
     : 'bg-teal-50 text-teal-700'
   return <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${cls}`}>{statusLabel(status)}</span>
 }
@@ -38,8 +40,9 @@ export default function Orders() {
       ) : (
         <div className="space-y-3">
           {orders.map(o => {
-            const idx = statusIndex(o.status)
-            const pct = o.status === 'cancelled' ? 0 : Math.max(0, idx) / 5 * 100
+            const flow = flowFor(o.order_mode || 'cash')
+            const idx = statusIndexInFlow(o.status, o.order_mode || 'cash')
+            const pct = o.status === 'cancelled' ? 0 : Math.max(0, idx) / Math.max(1, flow.length - 1) * 100
             return (
               <Link key={o.id} to={`/orders/${o.id}`} className="block rounded-2xl border border-stone-200 bg-white p-4">
                 <div className="flex items-center justify-between">
