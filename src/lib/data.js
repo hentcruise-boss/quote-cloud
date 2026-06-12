@@ -253,3 +253,42 @@ export async function replenishmentReceive(id) {
   const { error } = await supabase.rpc('replenishment_receive', { p_id: id })
   if (error) throw error
 }
+
+// ============ 經銷商 Dashboard 統計 ============
+export async function fetchDealerDashboard(dealerId) {
+  if (!dealerId) return null
+  const [{ data: orders }, { data: statements }, { data: inv }] = await Promise.all([
+    supabase.from('orders').select('id, total, status, order_mode, created_at, deposit_amount, balance_amount').eq('dealer_id', dealerId),
+    supabase.from('statements').select('outstanding').eq('dealer_id', dealerId),
+    supabase.from('inventory').select('qty').eq('dealer_id', dealerId).gt('qty', 0),
+  ])
+
+  const now = new Date()
+  const monthKey = (d) => `${d.getFullYear()}-${d.getMonth()}`
+  const thisM = monthKey(now)
+  const lastM = monthKey(new Date(now.getFullYear(), now.getMonth() - 1, 1))
+
+  const valid = (orders || []).filter(o => o.status !== 'cancelled')
+  const inMonth = (o, m) => monthKey(new Date(o.created_at)) === m
+
+  const thisMonth = valid.filter(o => inMonth(o, thisM))
+  const lastMonth = valid.filter(o => inMonth(o, lastM))
+  const awaiting  = valid.filter(o => o.status === 'awaiting_payment')
+  const readyPickup = valid.filter(o => o.status === 'ready_pickup')
+
+  const modeBreakdown = {}
+  thisMonth.forEach(o => { modeBreakdown[o.order_mode || 'cash'] = (modeBreakdown[o.order_mode || 'cash'] || 0) + 1 })
+
+  const sumTotal = (arr) => arr.reduce((s, o) => s + Number(o.total || 0), 0)
+  const sumDeposit = (arr) => arr.reduce((s, o) => s + Number(o.deposit_amount || o.total || 0), 0)
+
+  return {
+    thisMonth: { count: thisMonth.length, total: sumTotal(thisMonth) },
+    lastMonth: { count: lastMonth.length, total: sumTotal(lastMonth) },
+    awaitingPayment: { count: awaiting.length, total: sumDeposit(awaiting) },
+    readyPickup:     { count: readyPickup.length },
+    outstanding:     (statements || []).reduce((s, x) => s + Number(x.outstanding || 0), 0),
+    inventory:       { skuCount: inv?.length || 0, totalQty: (inv || []).reduce((s, x) => s + Number(x.qty), 0) },
+    modeBreakdown,
+  }
+}
