@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react'
 import { Plus, X, CheckCircle2, AlertCircle, Trash2 } from 'lucide-react'
 import { supabase } from '../../supabase'
 import { MEMBER_TYPES, memberTypeLabel } from '../../lib/filters'
+import { BANK_ACCOUNTS, BANK_KEYS } from '../../lib/bankInfo'
 
-const EMPTY = { company: '', contact_name: '', email: '', phone: '', pricing_tier_id: '', rep_name: '', rep_phone: '', member_type: 'distribution', is_active: true }
+const EMPTY = { company: '', contact_name: '', email: '', phone: '', pricing_tier_id: '', rep_name: '', rep_phone: '', member_type: 'distribution', bank_account_key: 'mmj_tw', is_active: true }
 
 function DealerModal({ dealer, tiers, onClose, onSaved }) {
   const [f, setF] = useState(dealer ? { ...dealer } : { ...EMPTY })
@@ -46,6 +47,11 @@ function DealerModal({ dealer, tiers, onClose, onSaved }) {
               </select>
             </L>
           </div>
+          <L label="收款帳戶（顯示在訂單匯款卡）">
+            <select value={f.bank_account_key || 'mmj_tw'} onChange={e => set('bank_account_key', e.target.value)} className="inp">
+              {BANK_KEYS.map(k => <option key={k} value={k}>{BANK_ACCOUNTS[k].label}</option>)}
+            </select>
+          </L>
           <div className="grid grid-cols-2 gap-3">
             <L label="專員姓名"><input value={f.rep_name || ''} onChange={e => set('rep_name', e.target.value)} className="inp" /></L>
             <L label="專員電話"><input value={f.rep_phone || ''} onChange={e => set('rep_phone', e.target.value)} className="inp" /></L>

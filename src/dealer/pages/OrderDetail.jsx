@@ -5,9 +5,35 @@ import { fetchOrder, uploadPaymentProof, paymentProofSignedUrl } from '../../lib
 import { nt, fmtDate, fmtDateTime } from '../../lib/format'
 import { flowFor, statusIndexInFlow, statusLabel } from '../../lib/status'
 import { orderModeLabel, deliveryLabel } from '../../lib/filters'
-import { BANK_INFO } from '../../lib/bankInfo'
+import { bankAccount } from '../../lib/bankInfo'
+import { useAuth } from '../../lib/auth'
+
+function BankAccountRows({ account, order, copy }) {
+  if (account.type === 'OVERSEAS') {
+    return (
+      <>
+        <Row label="Beneficiary" value={account.beneficiary} copy={copy} />
+        <Row label="Bank"  value={account.bank} />
+        <Row label="SWIFT" value={account.swift} mono copy={copy} />
+        <Row label="A/C (USD)" value={account.usd} mono copy={copy} />
+        <Row label="A/C (CNY)" value={account.cny} mono copy={copy} />
+        <Row label="Reference" value={order.order_no} mono copy={copy} hint="Please include order number as reference" />
+      </>
+    )
+  }
+  return (
+    <>
+      <Row label="戶名" value={account.name} copy={copy} />
+      <Row label="銀行" value={account.bank} />
+      <Row label="帳號" value={account.account} mono copy={copy} />
+      <Row label="備註" value={order.order_no} mono copy={copy} hint="請於匯款備註欄填上訂單編號" />
+    </>
+  )
+}
 
 function PaymentInfoCard({ order, onUploaded }) {
+  const { dealer } = useAuth()
+  const account = bankAccount(dealer?.bank_account_key)
   const isDeposit = Number(order.deposit_amount) > 0 && Number(order.deposit_amount) < Number(order.total)
   const dueAmount = isDeposit ? order.deposit_amount : order.total
   const copy = (t) => navigator.clipboard?.writeText(t)
@@ -30,43 +56,46 @@ function PaymentInfoCard({ order, onUploaded }) {
     finally { setBusy(false) }
   }
 
+  const isOverseas = account.type === 'OVERSEAS'
+
   return (
     <div className="overflow-hidden rounded-2xl border-2 border-amber-300 bg-amber-50">
-      <div className="flex items-center gap-2 border-b border-amber-200 bg-amber-100/60 px-5 py-3">
-        <Banknote className="h-5 w-5 text-amber-700" />
-        <div className="text-sm font-bold text-amber-900">請於 3 日內完成匯款</div>
+      <div className="flex items-center justify-between gap-2 border-b border-amber-200 bg-amber-100/60 px-5 py-3">
+        <div className="flex items-center gap-2">
+          <Banknote className="h-5 w-5 text-amber-700" />
+          <div className="text-sm font-bold text-amber-900">{isOverseas ? 'Please complete the wire transfer within 3 days' : '請於 3 日內完成匯款'}</div>
+        </div>
+        <span className="rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-semibold text-amber-700">{account.label}</span>
       </div>
       <div className="space-y-3 p-5">
         <div>
-          <div className="text-xs text-amber-700">本次須匯金額（{isDeposit ? '定金' : '全款'}）</div>
+          <div className="text-xs text-amber-700">{isOverseas ? `Amount due (${isDeposit ? 'Deposit' : 'Full payment'})` : `本次須匯金額（${isDeposit ? '定金' : '全款'}）`}</div>
           <div className="mt-0.5 font-mono text-3xl font-extrabold text-amber-900">{nt(dueAmount)}</div>
         </div>
         <div className="space-y-1.5 rounded-xl bg-white px-4 py-3 text-sm">
-          <Row label="銀行" value={`${BANK_INFO.bank}（${BANK_INFO.bankCode}）`} />
-          <Row label="分行" value={BANK_INFO.branch} />
-          <Row label="戶名" value={BANK_INFO.name} copy={copy} />
-          <Row label="帳號" value={BANK_INFO.account} mono copy={copy} />
-          <Row label="備註" value={order.order_no} mono copy={copy} hint="請於匯款備註欄填上訂單編號" />
+          <BankAccountRows account={account} order={order} copy={copy} />
         </div>
         <p className="text-xs leading-relaxed text-amber-800">
-          {BANK_INFO.note} 完成後請上傳匯款憑證並等待專員確認，狀態會自動更新為「已收款」。
+          {isOverseas
+            ? 'After transfer, please upload the proof of payment and wait for confirmation. Status will update automatically.'
+            : '請於匯款時於備註填上訂單編號，方便對帳。完成後請上傳匯款憑證並等待專員確認，狀態會自動更新為「已收款」。'}
         </p>
 
         {/* 上傳區塊 */}
         <div className="rounded-xl border border-amber-200 bg-white p-3">
           {order.payment_proof ? (
             <div className="flex items-center justify-between gap-3 text-sm">
-              <span className="flex items-center gap-2 text-emerald-700"><FileCheck2 className="h-4 w-4" />已上傳憑證，等候專員確認</span>
+              <span className="flex items-center gap-2 text-emerald-700"><FileCheck2 className="h-4 w-4" />{isOverseas ? 'Proof uploaded, awaiting confirmation' : '已上傳憑證，等候專員確認'}</span>
               <div className="flex gap-2">
-                {proofUrl && <a href={proofUrl} target="_blank" rel="noreferrer" className="rounded-lg border border-stone-200 px-2.5 py-1 text-xs text-stone-600">檢視</a>}
-                <button onClick={() => inputRef.current?.click()} className="rounded-lg border border-stone-200 px-2.5 py-1 text-xs text-stone-600">重新上傳</button>
+                {proofUrl && <a href={proofUrl} target="_blank" rel="noreferrer" className="rounded-lg border border-stone-200 px-2.5 py-1 text-xs text-stone-600">{isOverseas ? 'View' : '檢視'}</a>}
+                <button onClick={() => inputRef.current?.click()} className="rounded-lg border border-stone-200 px-2.5 py-1 text-xs text-stone-600">{isOverseas ? 'Re-upload' : '重新上傳'}</button>
               </div>
             </div>
           ) : (
             <button onClick={() => inputRef.current?.click()} disabled={busy}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-700 py-2.5 text-sm font-semibold text-white disabled:opacity-60">
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-              {busy ? '上傳中…' : '上傳匯款憑證（截圖 / PDF）'}
+              {busy ? (isOverseas ? 'Uploading…' : '上傳中…') : (isOverseas ? 'Upload Proof of Payment (image / PDF)' : '上傳匯款憑證（截圖 / PDF）')}
             </button>
           )}
           <input ref={inputRef} type="file" accept="image/*,application/pdf" className="hidden"

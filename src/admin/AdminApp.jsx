@@ -1,6 +1,6 @@
 import React from 'react'
 import { Routes, Route, NavLink, Navigate, useNavigate } from 'react-router-dom'
-import { Users, Package, Tags, ClipboardList, Boxes, ReceiptText, Sparkles, Truck, Zap, LogOut, ExternalLink } from 'lucide-react'
+import { Users, Package, Tags, ClipboardList, Boxes, ReceiptText, Sparkles, Truck, Zap, Banknote, LogOut, ExternalLink } from 'lucide-react'
 import { useAuth } from '../lib/auth'
 import AdminDealers from './pages/AdminDealers'
 import AdminProducts from './pages/AdminProducts'
@@ -11,6 +11,7 @@ import AdminBilling from './pages/AdminBilling'
 import AdminCustomRequests from './pages/AdminCustomRequests'
 import AdminSuppliers from './pages/AdminSuppliers'
 import AdminReplenishment from './pages/AdminReplenishment'
+import AdminBankAccounts from './pages/AdminBankAccounts'
 
 const NAV = [
   { to: '/admin', end: true, icon: ClipboardList, label: '訂單' },
@@ -22,6 +23,7 @@ const NAV = [
   { to: '/admin/custom', icon: Sparkles, label: '定制詢價' },
   { to: '/admin/suppliers', icon: Truck, label: '供應商' },
   { to: '/admin/replenishment', icon: Zap, label: '補倉' },
+  { to: '/admin/banks', icon: Banknote, label: '銀行帳戶' },
 ]
 
 export default function AdminApp() {
@@ -64,6 +66,7 @@ export default function AdminApp() {
           <Route path="custom" element={<AdminCustomRequests />} />
           <Route path="suppliers" element={<AdminSuppliers />} />
           <Route path="replenishment" element={<AdminReplenishment />} />
+          <Route path="banks" element={<AdminBankAccounts />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>
       </main>
