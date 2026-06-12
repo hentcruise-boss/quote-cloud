@@ -4,6 +4,7 @@ import { ArrowLeft, Check, Truck } from 'lucide-react'
 import { fetchOrder } from '../../lib/data'
 import { nt, fmtDate, fmtDateTime } from '../../lib/format'
 import { ORDER_FLOW, statusIndex, statusLabel } from '../../lib/status'
+import { orderModeLabel, deliveryLabel } from '../../lib/filters'
 
 export default function OrderDetail() {
   const { id } = useParams()
@@ -47,6 +48,12 @@ export default function OrderDetail() {
           <Truck className="h-4 w-4 text-teal-600" />
           預計到貨日：<span className="font-semibold">{order.eta ? fmtDate(order.eta) : '待安排（專員確認後更新）'}</span>
         </div>
+        {order.order_mode && (
+          <div className="mt-2 flex flex-wrap gap-2 text-xs">
+            <span className="rounded-md border border-stone-200 bg-white px-2 py-1 text-stone-600">下單方式：<b className="text-stone-800">{orderModeLabel(order.order_mode)}</b></span>
+            <span className="rounded-md border border-stone-200 bg-white px-2 py-1 text-stone-600">配送：<b className="text-stone-800">{deliveryLabel(order.delivery_service)}</b></span>
+          </div>
+        )}
       </div>
 
       {/* 進度時間軸 */}
@@ -92,8 +99,15 @@ export default function OrderDetail() {
         </div>
         <div className="mt-3 space-y-1 border-t border-stone-100 pt-3 text-sm">
           <div className="flex justify-between text-stone-500"><span>未稅小計</span><span className="font-mono">{nt(order.subtotal)}</span></div>
+          {Number(order.assembly_fee) > 0 && <div className="flex justify-between text-stone-500"><span>組配服務費（已含於小計）</span><span className="font-mono">{nt(order.assembly_fee)}</span></div>}
           <div className="flex justify-between text-stone-500"><span>營業稅</span><span className="font-mono">{nt(order.tax)}</span></div>
           <div className="flex justify-between font-bold text-stone-800"><span>含稅總計</span><span className="font-mono text-teal-700">{nt(order.total)}</span></div>
+          {Number(order.deposit_amount) > 0 && Number(order.deposit_amount) < Number(order.total) && (
+            <div className="mt-2 grid grid-cols-2 gap-2 rounded-xl bg-amber-50 p-3 text-xs">
+              <div><div className="text-amber-700">定金</div><div className="font-mono text-base font-bold text-amber-900">{nt(order.deposit_amount)}</div></div>
+              <div className="text-right"><div className="text-amber-700">尾款</div><div className="font-mono text-base font-bold text-amber-900">{nt(order.balance_amount)}</div></div>
+            </div>
+          )}
         </div>
       </div>
 

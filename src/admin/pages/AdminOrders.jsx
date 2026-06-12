@@ -3,6 +3,7 @@ import { X, ArrowRight, Ban } from 'lucide-react'
 import { supabase } from '../../supabase'
 import { nt, fmtDate, fmtDateTime } from '../../lib/format'
 import { ORDER_FLOW, statusLabel, statusIndex, nextStatus } from '../../lib/status'
+import { orderModeLabel, deliveryLabel } from '../../lib/filters'
 
 function OrderModal({ id, dealersMap, onClose, onChanged }) {
   const [order, setOrder] = useState(null)
@@ -90,9 +91,19 @@ function OrderModal({ id, dealersMap, onClose, onChanged }) {
             </div>
             <div className="mt-2 space-y-0.5 border-t border-slate-100 pt-2 text-sm">
               <div className="flex justify-between text-slate-500"><span>未稅</span><span className="font-mono">{nt(order.subtotal)}</span></div>
+              {Number(order.assembly_fee) > 0 && <div className="flex justify-between text-slate-500"><span>組配費（已含於未稅）</span><span className="font-mono">{nt(order.assembly_fee)}</span></div>}
               <div className="flex justify-between text-slate-500"><span>稅</span><span className="font-mono">{nt(order.tax)}</span></div>
               <div className="flex justify-between font-bold"><span>含稅總計</span><span className="font-mono text-teal-700">{nt(order.total)}</span></div>
+              {Number(order.deposit_amount) > 0 && Number(order.deposit_amount) < Number(order.total) && (
+                <div className="flex justify-between pt-1 text-amber-700"><span>定金 / 尾款</span><span className="font-mono">{nt(order.deposit_amount)} / {nt(order.balance_amount)}</span></div>
+              )}
             </div>
+            {order.order_mode && (
+              <div className="mt-2 flex flex-wrap gap-1.5 text-xs">
+                <span className="rounded bg-slate-100 px-2 py-1">下單方式：<b>{orderModeLabel(order.order_mode)}</b></span>
+                <span className="rounded bg-slate-100 px-2 py-1">配送：<b>{deliveryLabel(order.delivery_service)}</b></span>
+              </div>
+            )}
           </div>
 
           {/* 時間軸 */}

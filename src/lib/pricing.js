@@ -38,3 +38,27 @@ export function finalUnitPrice({ product, tier, override, options = [], qty = 1 
   const base = tierUnitPrice({ product, tier, override }) + optionsDelta(options)
   return Math.round(base * qtyRate(product, qty))
 }
+
+// 依「下單方式」算單價：期貨用 futures_price、鎖單再打折
+// mode: ORDER_MODES 的一筆
+export function modeUnitPrice({ product, tier, override, mode }) {
+  const baseRef = mode?.useFutures && product.futures_price != null
+    ? Number(product.futures_price)
+    : Number(product.base_price)
+  const tierRate = tier ? Number(tier.price_rate) : 1
+  const tierPrice = override != null && override !== '' ? Number(override) : baseRef * tierRate
+  return Math.round(tierPrice * (mode?.priceRate ?? 1))
+}
+
+// 該產品可用的下單方式（陣列）
+// 規則：現貨 stock_qty>0 → cash + lock10；有 futures_price → futures30
+export function availableModesFor(product, ORDER_MODES) {
+  const out = []
+  const hasStock = Number(product.stock_qty || 0) > 0
+  const hasFutures = product.futures_price != null && Number(product.futures_price) > 0
+  for (const m of ORDER_MODES) {
+    if (m.useFutures && hasFutures) out.push(m)
+    if (!m.useFutures && hasStock) out.push(m)
+  }
+  return out
+}

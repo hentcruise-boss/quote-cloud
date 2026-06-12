@@ -45,15 +45,29 @@ const orderNo = () => {
 }
 
 // items: [{ sku, name, spec, options, unitPrice, qty }]（unitPrice 為未稅、含選配、含數量折扣）
-export async function createOrder({ dealerId, recipient, phone, address, note, items }) {
-  const subtotal = items.reduce((s, i) => s + Number(i.unitPrice) * Number(i.qty), 0)
+// orderMode: 'cash' | 'lock10' | 'futures30'
+// deliveryService: 'self' | 'assembly'
+// assemblyFee: 未稅組配費（前端依規則算好傳入）
+// depositRate: 0~1（依下單方式：cash=1 / lock10=0.1 / futures30=0.3）
+export async function createOrder({ dealerId, recipient, phone, address, note,
+                                    items, orderMode = 'cash', deliveryService = 'self',
+                                    assemblyFee = 0, depositRate = 1 }) {
+  const itemsSub = items.reduce((s, i) => s + Number(i.unitPrice) * Number(i.qty), 0)
+  const subtotal = itemsSub + Number(assemblyFee)
   const tax = Math.round(subtotal * TAX_RATE)
   const total = subtotal + tax
+  const deposit = Math.round(total * Number(depositRate))
+  const balance = total - deposit
   const order = {
     order_no: orderNo(),
     dealer_id: dealerId,
     status: 'placed',
     subtotal, tax, total,
+    order_mode: orderMode,
+    delivery_service: deliveryService,
+    assembly_fee: assemblyFee,
+    deposit_amount: deposit,
+    balance_amount: balance,
     recipient, phone, address, note,
   }
   const { data: created, error } = await supabase.from('orders').insert(order).select().single()

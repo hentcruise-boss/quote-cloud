@@ -4,7 +4,7 @@ import { supabase } from '../../supabase'
 import { nt } from '../../lib/format'
 import { LEAD_TIME, SCENES_PRESET } from '../../lib/filters'
 
-const EMPTY = { sku: '', name: '', series: '', category: '', description: '', spec: '', material: '', base_price: 0, image_url: '', qty_tiers: [], is_active: true, sort_order: 0, lead_time_type: 'normal', scenes: [] }
+const EMPTY = { sku: '', name: '', series: '', category: '', description: '', spec: '', material: '', base_price: 0, futures_price: '', stock_qty: 0, image_url: '', qty_tiers: [], is_active: true, sort_order: 0, lead_time_type: 'normal', scenes: [] }
 
 // 把檔案上傳到 product-images bucket，回傳 public URL
 async function uploadProductImage(file, sku) {
@@ -117,7 +117,11 @@ function ProductModal({ product, onClose, onSaved }) {
             <L label="材質"><input value={f.material || ''} onChange={e => set('material', e.target.value)} className="inp" /></L>
           </div>
           <div className="grid grid-cols-3 gap-3">
-            <L label="牌價（未稅）"><input type="number" value={f.base_price} onChange={e => set('base_price', e.target.value)} className="inp font-mono" /></L>
+            <L label="現貨牌價（未稅）"><input type="number" value={f.base_price} onChange={e => set('base_price', e.target.value)} className="inp font-mono" /></L>
+            <L label="期貨牌價（未稅，可空）"><input type="number" value={f.futures_price ?? ''} onChange={e => set('futures_price', e.target.value === '' ? null : Number(e.target.value))} className="inp font-mono" placeholder="留空＝不開放期貨" /></L>
+            <L label="現貨庫存（件）"><input type="number" value={f.stock_qty || 0} onChange={e => set('stock_qty', Number(e.target.value) || 0)} className="inp font-mono" /></L>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
             <L label="排序"><input type="number" value={f.sort_order} onChange={e => set('sort_order', e.target.value)} className="inp font-mono" /></L>
             <L label="上架"><label className="flex h-[38px] items-center gap-2 text-sm"><input type="checkbox" checked={f.is_active} onChange={e => set('is_active', e.target.checked)} />{f.is_active ? '上架中' : '已下架'}</label></L>
           </div>

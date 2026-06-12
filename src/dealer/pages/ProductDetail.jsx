@@ -7,6 +7,7 @@ import { fetchProduct, fetchOptions, fetchOverrides, fetchFavorites, toggleFavor
 import { tierUnitPrice, optionsDelta, qtyRate, unitPriceWithOptions, finalUnitPrice } from '../../lib/pricing'
 import { nt, addTax } from '../../lib/format'
 import { LEAD_TIME, leadTimeBadgeClass } from '../../lib/filters'
+import { Boxes } from 'lucide-react'
 
 export default function ProductDetail() {
   const { sku } = useParams()
@@ -114,6 +115,18 @@ export default function ProductDetail() {
             {product.spec && <><dt className="text-stone-400">規格</dt><dd className="text-stone-700">{product.spec}</dd></>}
             {product.material && <><dt className="text-stone-400">材質</dt><dd className="text-stone-700">{product.material}</dd></>}
           </dl>
+
+          <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
+            <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 ${Number(product.stock_qty || 0) > 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-stone-100 text-stone-500 border-stone-200'}`}>
+              <Boxes className="h-3.5 w-3.5" />
+              {Number(product.stock_qty || 0) > 0 ? `現貨 ${product.stock_qty} 件` : '無現貨（可期貨下單）'}
+            </span>
+            {product.futures_price != null && (
+              <span className="rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-amber-700">
+                期貨牌價 {nt(product.futures_price)}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 

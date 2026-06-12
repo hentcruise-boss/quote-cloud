@@ -44,6 +44,7 @@ Supabase 連線資訊在 `src/supabase.js`。
 4. `dealer_seed_p2.sql` —— Demo 庫存（需先完成下方帳號綁定）
 5. `storage_setup.sql` —— 產品圖片 Storage bucket 與權限（後台「產品」要能上傳圖片才需要）
 6. `dealer_migration_filters.sql` —— 加上「交期」「場景」欄位（給經銷商前台篩選用）
+7. `dealer_migration_v2.sql` —— 下單方式（現金／10%鎖單／期貨30%鎖單）、配送服務（自運／預約組配）、會員類型（經銷／核心）、現貨庫存與期貨牌價
 
 ### 2. 建立登入帳號
 資料表的 `dealers` / `admins` 需綁定一個 Supabase Auth 使用者。
