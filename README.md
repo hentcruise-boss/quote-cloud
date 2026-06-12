@@ -46,6 +46,8 @@ Supabase 連線資訊在 `src/supabase.js`。
 6. `dealer_migration_filters.sql` —— 加上「交期」「場景」欄位（給經銷商前台篩選用）
 7. `dealer_migration_v2.sql` —— 下單方式（現金／10%鎖單／期貨30%鎖單）、配送服務（自運／預約組配）、會員類型（經銷／核心）、現貨庫存與期貨牌價
 8. `dealer_migration_v3.sql` —— 新增「現貨 30% 鎖單」（15% off）下單方式；訂單加上「待收款 → 已收款 → 待提貨」流程；後台「確認已收到匯款」操作
+9. `storage_setup_p2.sql` —— 匯款憑證 bucket（私有 + RLS：自己訂單可上傳/讀，admin 全部）
+10. `dealer_migration_v4.sql` —— 核心會員定制詢價（custom_requests）+ 供應商（suppliers）+ 自動補倉（replenishment_orders / generate_replenishments RPC，附 pg_cron 排程範例）
 
 ### 2. 建立登入帳號
 資料表的 `dealers` / `admins` 需綁定一個 Supabase Auth 使用者。

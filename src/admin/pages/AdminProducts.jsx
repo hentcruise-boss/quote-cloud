@@ -4,7 +4,7 @@ import { supabase } from '../../supabase'
 import { nt } from '../../lib/format'
 import { LEAD_TIME, SCENES_PRESET } from '../../lib/filters'
 
-const EMPTY = { sku: '', name: '', series: '', category: '', description: '', spec: '', material: '', base_price: 0, futures_price: '', stock_qty: 0, image_url: '', qty_tiers: [], is_active: true, sort_order: 0, lead_time_type: 'normal', scenes: [] }
+const EMPTY = { sku: '', name: '', series: '', category: '', description: '', spec: '', material: '', base_price: 0, futures_price: '', stock_qty: 0, image_url: '', qty_tiers: [], is_active: true, sort_order: 0, lead_time_type: 'normal', scenes: [], supplier_id: '', reorder_point: 5, reorder_qty: 10 }
 
 // 把檔案上傳到 product-images bucket，回傳 public URL
 async function uploadProductImage(file, sku) {
@@ -65,14 +65,16 @@ function ImageUploader({ value, onChange, sku }) {
 function ProductModal({ product, onClose, onSaved }) {
   const isNew = !product
   const [f, setF] = useState(product
-    ? { ...product, qty_tiers: product.qty_tiers || [], scenes: product.scenes || [], lead_time_type: product.lead_time_type || 'normal' }
+    ? { ...product, qty_tiers: product.qty_tiers || [], scenes: product.scenes || [], lead_time_type: product.lead_time_type || 'normal', reorder_point: product.reorder_point ?? 5, reorder_qty: product.reorder_qty ?? 10 }
     : { ...EMPTY })
   const [options, setOptions] = useState([])
+  const [suppliers, setSuppliers] = useState([])
   const [busy, setBusy] = useState(false)
   const set = (k, v) => setF(s => ({ ...s, [k]: v }))
 
   useEffect(() => {
     if (product) supabase.from('product_options').select('*').eq('sku', product.sku).order('sort_order').then(({ data }) => setOptions(data || []))
+    supabase.from('suppliers').select('id, name').order('name').then(({ data }) => setSuppliers(data || []))
   }, [product])
 
   const setTier = (i, k, v) => setF(s => { const q = [...s.qty_tiers]; q[i] = { ...q[i], [k]: Number(v) }; return { ...s, qty_tiers: q } })
@@ -124,6 +126,21 @@ function ProductModal({ product, onClose, onSaved }) {
           <div className="grid grid-cols-2 gap-3">
             <L label="排序"><input type="number" value={f.sort_order} onChange={e => set('sort_order', e.target.value)} className="inp font-mono" /></L>
             <L label="上架"><label className="flex h-[38px] items-center gap-2 text-sm"><input type="checkbox" checked={f.is_active} onChange={e => set('is_active', e.target.checked)} />{f.is_active ? '上架中' : '已下架'}</label></L>
+          </div>
+          {/* 補倉設定 */}
+          <div className="rounded-lg border border-amber-200 bg-amber-50/30 p-3">
+            <div className="mb-2 text-xs font-semibold uppercase text-amber-900">補倉設定（自動補貨用）</div>
+            <div className="grid grid-cols-3 gap-3">
+              <L label="供應商">
+                <select value={f.supplier_id || ''} onChange={e => set('supplier_id', e.target.value || null)} className="inp">
+                  <option value="">— 未指定 —</option>
+                  {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </L>
+              <L label="補貨門檻"><input type="number" value={f.reorder_point} onChange={e => set('reorder_point', Number(e.target.value) || 0)} className="inp font-mono" /></L>
+              <L label="單次補貨量"><input type="number" value={f.reorder_qty} onChange={e => set('reorder_qty', Number(e.target.value) || 0)} className="inp font-mono" /></L>
+            </div>
+            <div className="mt-1 text-[10px] text-amber-700">當現貨庫存低於門檻，「補倉」分頁就會把本品項列入下一張補倉單。</div>
           </div>
           <ImageUploader value={f.image_url} onChange={v => set('image_url', v)} sku={f.sku} />
 

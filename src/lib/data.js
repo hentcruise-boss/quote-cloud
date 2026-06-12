@@ -175,3 +175,81 @@ export async function fetchStatement(id) {
   const { data: payments } = await supabase.from('payments').select('*').eq('statement_id', id).order('paid_at')
   return { statement, items: items || [], payments: payments || [] }
 }
+
+// ============ 匯款憑證上傳（payment-proofs bucket）============
+// 上傳到私有 bucket，回傳路徑（不是 public URL）；之後讀檔用 signed URL
+export async function uploadPaymentProof(orderId, file) {
+  const ext = (file.name.split('.').pop() || 'bin').toLowerCase()
+  const path = `${orderId}/${Date.now()}.${ext}`
+  const { error } = await supabase.storage.from('payment-proofs').upload(path, file, { cacheControl: '3600', upsert: false })
+  if (error) throw error
+  await supabase.from('orders').update({ payment_proof: path }).eq('id', orderId)
+  return path
+}
+
+export async function paymentProofSignedUrl(path, expiresIn = 600) {
+  if (!path) return null
+  const { data } = await supabase.storage.from('payment-proofs').createSignedUrl(path, expiresIn)
+  return data?.signedUrl || null
+}
+
+// ============ 定制詢價（custom_requests）============
+const customNo = () => {
+  const d = new Date()
+  const ymd = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`
+  return `CR-${ymd}-${String(Math.floor(1000 + Math.random() * 9000))}`
+}
+
+export async function fetchCustomRequests(dealerId) {
+  let q = supabase.from('custom_requests').select('*').order('created_at', { ascending: false })
+  if (dealerId) q = q.eq('dealer_id', dealerId)
+  const { data } = await q
+  return data || []
+}
+
+export async function createCustomRequest({ dealerId, title, description, qty, budget, isRush, desiredDate }) {
+  const row = {
+    request_no: customNo(), dealer_id: dealerId,
+    title, description, qty: Number(qty) || 1,
+    budget: budget ? Number(budget) : null,
+    is_rush: !!isRush,
+    desired_date: desiredDate || null,
+  }
+  const { data, error } = await supabase.from('custom_requests').insert(row).select().single()
+  if (error) throw error
+  return data
+}
+
+export async function customRequestDecide(id, decision) {
+  // decision: 'confirmed' | 'rejected'
+  await supabase.from('custom_requests')
+    .update({ status: decision, decided_at: new Date().toISOString() })
+    .eq('id', id)
+}
+
+// ============ 供應商 / 補倉系統（admin）============
+export async function fetchSuppliers() {
+  const { data } = await supabase.from('suppliers').select('*').order('name')
+  return data || []
+}
+
+export async function fetchReplenishments() {
+  const { data } = await supabase.from('replenishment_orders').select('*').order('generated_at', { ascending: false })
+  return data || []
+}
+
+export async function fetchReplenishmentItems(repId) {
+  const { data } = await supabase.from('replenishment_items').select('*').eq('replenishment_id', repId)
+  return data || []
+}
+
+export async function generateReplenishments() {
+  const { data, error } = await supabase.rpc('generate_replenishments')
+  if (error) throw error
+  return data
+}
+
+export async function replenishmentReceive(id) {
+  const { error } = await supabase.rpc('replenishment_receive', { p_id: id })
+  if (error) throw error
+}

@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react'
-import { X, ArrowRight, Ban, CheckCircle2 } from 'lucide-react'
+import { X, ArrowRight, Ban, CheckCircle2, FileCheck2 } from 'lucide-react'
 import { supabase } from '../../supabase'
 import { nt, fmtDate, fmtDateTime } from '../../lib/format'
 import { statusLabel, flowFor, statusIndexInFlow, nextStatusInFlow } from '../../lib/status'
 import { orderModeLabel, deliveryLabel } from '../../lib/filters'
+import { paymentProofSignedUrl } from '../../lib/data'
 
 function OrderModal({ id, dealersMap, onClose, onChanged }) {
   const [order, setOrder] = useState(null)
@@ -12,11 +13,13 @@ function OrderModal({ id, dealersMap, onClose, onChanged }) {
   const [eta, setEta] = useState('')
   const [busy, setBusy] = useState(false)
 
+  const [proofUrl, setProofUrl] = useState(null)
   const load = async () => {
     const { data: o } = await supabase.from('orders').select('*').eq('id', id).maybeSingle()
     const { data: it } = await supabase.from('order_items').select('*').eq('order_id', id)
     const { data: ev } = await supabase.from('order_status_events').select('*').eq('order_id', id).order('created_at')
     setOrder(o); setItems(it || []); setEvents(ev || []); setEta(o?.eta || '')
+    setProofUrl(o?.payment_proof ? await paymentProofSignedUrl(o.payment_proof, 600) : null)
   }
   useEffect(() => { load() }, [id])
 
@@ -80,6 +83,12 @@ function OrderModal({ id, dealersMap, onClose, onChanged }) {
             </div>
             {order.payment_received_at && (
               <div className="mt-2 text-xs text-emerald-700">入帳時間：{fmtDateTime(order.payment_received_at)}</div>
+            )}
+            {order.payment_proof && (
+              <div className="mt-2 flex items-center justify-between rounded-lg bg-emerald-50 px-3 py-2 text-xs">
+                <span className="flex items-center gap-1.5 text-emerald-800"><FileCheck2 className="h-3.5 w-3.5" />經銷商已上傳匯款憑證</span>
+                {proofUrl && <a href={proofUrl} target="_blank" rel="noreferrer" className="rounded-md bg-emerald-600 px-2.5 py-1 text-xs font-semibold text-white">檢視憑證</a>}
+              </div>
             )}
             <div className="mt-3 flex items-center gap-2 text-sm">
               <span className="text-slate-500">預計到貨日</span>

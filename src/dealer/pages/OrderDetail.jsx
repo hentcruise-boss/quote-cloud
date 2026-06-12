@@ -1,16 +1,35 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { ArrowLeft, Check, Truck, Banknote, Copy } from 'lucide-react'
-import { fetchOrder } from '../../lib/data'
+import { ArrowLeft, Check, Truck, Banknote, Copy, Upload, FileCheck2, Loader2 } from 'lucide-react'
+import { fetchOrder, uploadPaymentProof, paymentProofSignedUrl } from '../../lib/data'
 import { nt, fmtDate, fmtDateTime } from '../../lib/format'
 import { flowFor, statusIndexInFlow, statusLabel } from '../../lib/status'
 import { orderModeLabel, deliveryLabel } from '../../lib/filters'
 import { BANK_INFO } from '../../lib/bankInfo'
 
-function PaymentInfoCard({ order }) {
+function PaymentInfoCard({ order, onUploaded }) {
   const isDeposit = Number(order.deposit_amount) > 0 && Number(order.deposit_amount) < Number(order.total)
   const dueAmount = isDeposit ? order.deposit_amount : order.total
   const copy = (t) => navigator.clipboard?.writeText(t)
+  const inputRef = useRef(null)
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+  const [proofUrl, setProofUrl] = useState(null)
+
+  useEffect(() => {
+    if (order.payment_proof) paymentProofSignedUrl(order.payment_proof).then(setProofUrl)
+    else setProofUrl(null)
+  }, [order.payment_proof])
+
+  const handleFile = async (file) => {
+    if (!file) return
+    if (file.size > 5 * 1024 * 1024) { setErr('檔案請小於 5MB'); return }
+    setErr(''); setBusy(true)
+    try { await uploadPaymentProof(order.id, file); onUploaded?.() }
+    catch (e) { setErr('上傳失敗：' + (e.message || '請確認 Storage 已建立')) }
+    finally { setBusy(false) }
+  }
+
   return (
     <div className="overflow-hidden rounded-2xl border-2 border-amber-300 bg-amber-50">
       <div className="flex items-center gap-2 border-b border-amber-200 bg-amber-100/60 px-5 py-3">
@@ -23,15 +42,37 @@ function PaymentInfoCard({ order }) {
           <div className="mt-0.5 font-mono text-3xl font-extrabold text-amber-900">{nt(dueAmount)}</div>
         </div>
         <div className="space-y-1.5 rounded-xl bg-white px-4 py-3 text-sm">
-          <Row label="銀行" value={BANK_INFO.bank} />
+          <Row label="銀行" value={`${BANK_INFO.bank}（${BANK_INFO.bankCode}）`} />
           <Row label="分行" value={BANK_INFO.branch} />
           <Row label="戶名" value={BANK_INFO.name} copy={copy} />
           <Row label="帳號" value={BANK_INFO.account} mono copy={copy} />
           <Row label="備註" value={order.order_no} mono copy={copy} hint="請於匯款備註欄填上訂單編號" />
         </div>
         <p className="text-xs leading-relaxed text-amber-800">
-          {BANK_INFO.note} 完成後請等待專員確認入帳，狀態會自動更新為「已收款」。
+          {BANK_INFO.note} 完成後請上傳匯款憑證並等待專員確認，狀態會自動更新為「已收款」。
         </p>
+
+        {/* 上傳區塊 */}
+        <div className="rounded-xl border border-amber-200 bg-white p-3">
+          {order.payment_proof ? (
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <span className="flex items-center gap-2 text-emerald-700"><FileCheck2 className="h-4 w-4" />已上傳憑證，等候專員確認</span>
+              <div className="flex gap-2">
+                {proofUrl && <a href={proofUrl} target="_blank" rel="noreferrer" className="rounded-lg border border-stone-200 px-2.5 py-1 text-xs text-stone-600">檢視</a>}
+                <button onClick={() => inputRef.current?.click()} className="rounded-lg border border-stone-200 px-2.5 py-1 text-xs text-stone-600">重新上傳</button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={() => inputRef.current?.click()} disabled={busy}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-700 py-2.5 text-sm font-semibold text-white disabled:opacity-60">
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+              {busy ? '上傳中…' : '上傳匯款憑證（截圖 / PDF）'}
+            </button>
+          )}
+          <input ref={inputRef} type="file" accept="image/*,application/pdf" className="hidden"
+            onChange={e => handleFile(e.target.files?.[0])} />
+          {err && <div className="mt-2 text-xs text-rose-600">{err}</div>}
+        </div>
       </div>
     </div>
   )
@@ -52,9 +93,8 @@ export default function OrderDetail() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    (async () => { setData(await fetchOrder(id)); setLoading(false) })()
-  }, [id])
+  const load = async () => { setData(await fetchOrder(id)); setLoading(false) }
+  useEffect(() => { load() /* eslint-disable-next-line */ }, [id])
 
   if (loading) return <div className="py-20 text-center text-sm text-stone-400">載入中…</div>
   if (!data?.order) return (
@@ -99,7 +139,7 @@ export default function OrderDetail() {
       </div>
 
       {/* 待收款時顯示匯款資訊 */}
-      {awaitingPayment && !cancelled && <PaymentInfoCard order={order} />}
+      {awaitingPayment && !cancelled && <PaymentInfoCard order={order} onUploaded={load} />}
 
       {/* 進度時間軸 */}
       <div className="rounded-2xl border border-stone-200 bg-white p-5">

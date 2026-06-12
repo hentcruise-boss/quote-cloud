@@ -56,3 +56,15 @@ export const STATEMENT_STATUS = {
   open: '未結', partial: '部分付款', paid: '已結清',
 }
 export const statementLabel = (k) => STATEMENT_STATUS[k] || k
+
+// 定制詢價狀態
+export const CUSTOM_STATUS = {
+  submitted: '待回覆', quoted: '已報價', confirmed: '客戶已確認', rejected: '客戶拒絕', closed: '已結案',
+}
+export const customLabel = (k) => CUSTOM_STATUS[k] || k
+
+// 補倉單狀態
+export const REPLENISHMENT_STATUS = {
+  pending: '待發送', sent: '已發送', received: '已入庫', cancelled: '已取消',
+}
+export const replenishmentLabel = (k) => REPLENISHMENT_STATUS[k] || k

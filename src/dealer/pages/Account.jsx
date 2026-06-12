@@ -1,12 +1,15 @@
 import React from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Heart, Boxes, ReceiptText, ChevronRight, LogOut, Headset, BadgeCheck } from 'lucide-react'
+import { Heart, Boxes, ReceiptText, ChevronRight, LogOut, Headset, BadgeCheck, Sparkles } from 'lucide-react'
 import { useAuth } from '../../lib/auth'
 
-const LINKS = [
+const BASE_LINKS = [
   { to: '/favorites', icon: Heart, label: '常用清單', desc: '收藏的品項，回購更快' },
   { to: '/inventory', icon: Boxes, label: '庫存代管', desc: '查看樹林倉庫存、申請出庫' },
   { to: '/billing', icon: ReceiptText, label: '對帳中心', desc: '月結對帳單、付款紀錄' },
+]
+const CORE_LINKS = [
+  { to: '/custom', icon: Sparkles, label: '定制詢價', desc: '核心會員專屬：有限定制 / 加急', accent: 'amber' },
 ]
 
 export default function Account() {
@@ -35,9 +38,12 @@ export default function Account() {
       </div>
 
       <div className="space-y-2">
-        {LINKS.map(({ to, icon: Icon, label, desc }) => (
-          <Link key={to} to={to} className="flex items-center gap-3 rounded-2xl border border-stone-200 bg-white p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-stone-50 text-teal-700"><Icon className="h-5 w-5" /></div>
+        {[
+          ...(dealer?.member_type === 'core' ? CORE_LINKS : []),
+          ...BASE_LINKS,
+        ].map(({ to, icon: Icon, label, desc, accent }) => (
+          <Link key={to} to={to} className={`flex items-center gap-3 rounded-2xl border bg-white p-4 ${accent === 'amber' ? 'border-amber-300 bg-amber-50/40' : 'border-stone-200'}`}>
+            <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${accent === 'amber' ? 'bg-amber-100 text-amber-700' : 'bg-stone-50 text-teal-700'}`}><Icon className="h-5 w-5" /></div>
             <div className="min-w-0 flex-1">
               <div className="text-sm font-semibold text-stone-800">{label}</div>
               <div className="text-xs text-stone-400">{desc}</div>
