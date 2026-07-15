@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { Plus, Trash2, Download, FileSpreadsheet, Building2, Edit2, X, Package, LayoutTemplate, ChevronRight, AlertCircle, RefreshCw, Wifi, WifiOff, History, FolderOpen, ChevronDown, Clock } from 'lucide-react'
+import { Plus, Trash2, Download, FileSpreadsheet, Building2, Edit2, X, Package, LayoutTemplate, ChevronRight, AlertCircle, RefreshCw, Wifi, WifiOff, History, FolderOpen, ChevronDown, Clock, CalendarDays } from 'lucide-react'
 import { supabase } from './supabase'
+import SchedulerTab from './SchedulerTab'
 
 const SPACE_TYPES = ['總裁室','高管室','主管室','職員區','會議室','儲物室','培訓室','公共區','櫃台','茶水間']
 const EMPTY_PRODUCT = { sku:'',name:'',spaces:[],spec:'',material:'',price:0,cost:0,vendor:'',lead_time:'',volume:'',weight:'',assembly_fee:'',logistics_fee:'',labor_hours:'' }
@@ -458,6 +459,7 @@ export default function App() {
 
   const TABS=[
     {id:'quote',label:'報價工具',icon:<FileSpreadsheet className="w-4 h-4"/>},
+    {id:'scheduler',label:'派工排期',icon:<CalendarDays className="w-4 h-4"/>},
     {id:'products',label:`產品資料庫 (${products.length})`,icon:<Package className="w-4 h-4"/>},
     {id:'scenes',label:'場景模板',icon:<LayoutTemplate className="w-4 h-4"/>},
     {id:'history',label:`匯出歷史 (${history.length})`,icon:<History className="w-4 h-4"/>},
@@ -518,6 +520,7 @@ export default function App() {
       </header>
       <main className="max-w-screen-xl mx-auto px-6 py-6">
         {tab==='quote'&&<QuoteTab products={products} scenes={scenes} quoteItems={quoteItems} onAddItems={handleAddItems} onUpdateItem={handleUpdateItem} onRemoveItem={handleRemoveItem} totalSales={totalSales} totalCost={totalCost} totalProfit={totalProfit}/>}
+        {tab==='scheduler'&&<SchedulerTab projects={projects} withSync={withSync}/>}
         {tab==='products'&&<ProductsTab products={products} onSave={handleSaveProduct} onDelete={handleDeleteProduct}/>}
         {tab==='scenes'&&<ScenesTab scenes={scenes} products={products} onUpdate={handleUpdateScene} onAdd={handleAddScene} onDelete={handleDeleteScene}/>}
         {tab==='history'&&<HistoryTab history={history} onDelete={async id=>{await supabase.from('export_history').delete().eq('id',id);await loadHistory()}}/>}
